@@ -1,0 +1,46 @@
+[package]
+name = "zou"
+version = "0.1.0"
+authors = ["Antonin Carette <antonin.carette@gmail.com>"]
+description = "A simple and fast download accelerator"
+repository = "https://github.com/k0pernicus/zou"
+license = "MIT"
+
+[lib]
+name = "libzou"
+path = "src/lib.rs"
+
+[[bin]]
+name = "zou"
+path = "src/main.rs"
+
+[dependencies]
+ansi_term = "0.9.0"
+clap = "2.20.0"
+hyper = "0.9"
+pbr = "1.0.0"
+num_cpus = "1.0"
+
+[profile.dev]
+opt-level = 0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+panic = 'unwind'
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = false
+debug-assertions = false
+panic = 'unwind'
+
+[profile.test]
+opt-level = 0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+panic = 'unwind'
