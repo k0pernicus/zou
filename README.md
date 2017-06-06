@@ -1,14 +1,16 @@
 # zou
 A simple and fast download accelerator, written in Rust
 
-Zou is a [Snatch](https://github.com/derniercri/snatch) fork by [@k0pernicus](https://github.com/k0pernicus). Snatch is a fast and interruptable download accelerator, written in Rust, from [@k0pernicus](https://github.com/k0pernicus) and [@Jean-Serge](https://github.com/Jean-Serge).
+Zou is a [Snatch](https://github.com/derniercri/snatch) fork by [@k0pernicus](https://github.com/k0pernicus).
+Snatch is a fast and interruptable download accelerator, written in Rust, from [@k0pernicus](https://github.com/k0pernicus) and [@Jean-Serge](https://github.com/Jean-Serge).
 
 ## Current features
 
 * **Simple**: a command line tool to manage easily your downloads ;
 * **Fast**: multithreading support.
 
-**NOTE**: _Zou_ is on _alpha_ version. This version runs well on remote contents with a length known **before** the download (with the `content-length` header from the server response).
+**NOTE**: _Zou_ is on _alpha_ version.
+This version runs well on remote contents with a length known **before** the download (with the `content-length` header from the server response).
 
 ## Goal
 
