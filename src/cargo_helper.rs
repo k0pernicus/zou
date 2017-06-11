@@ -1,21 +1,26 @@
 use authorization::{AuthorizationHeaderFactory, AuthorizationType, GetAuthorizationType};
 use Bytes;
+use bench::bench_mirrors;
 use client::GetResponse;
 use contentlength::GetContentLength;
 use http_version::ValidateHttpVersion;
 use hyper::header::{ByteRangeSpec, Headers, Range};
 use hyper::client::Client;
+use MirrorsList;
 use response::CheckResponseStatus;
 use std::result::Result;
 use util::prompt_user;
 
-pub struct CargoInfo {
+pub struct CargoInfo<'a> {
     pub accept_partialcontent: bool,
     pub auth_header: Option<AuthorizationHeaderFactory>,
+    pub best_mirrors: Option<MirrorsList<'a>>,
     pub content_length: Bytes,
 }
 
-pub fn get_cargo_info(url: &str) -> Result<CargoInfo, String> {
+pub fn get_cargo_info<'a>(url: &str,
+                          mirrors: Option<MirrorsList<'a>>)
+                          -> Result<CargoInfo<'a>, String> {
     let hyper_client = Client::new();
 
     let client_response = hyper_client.get_head_response(url).unwrap();
@@ -102,9 +107,17 @@ pub fn get_cargo_info(url: &str) -> Result<CargoInfo, String> {
 
     info!("Checking the server's support for PartialContent headers...");
 
+    info!("Getting informations about possible mirrors...");
+
+    let best_mirrors: Option<MirrorsList<'a>> = match mirrors {
+        Some(_mirrors) => Some(bench_mirrors(_mirrors, url)),
+        None => None,
+    };
+
     Ok(CargoInfo {
            accept_partialcontent: client_response.check_partialcontent_status(),
            auth_header: auth_header_factory,
+           best_mirrors: best_mirrors,
            content_length: remote_content_length,
        })
 }
