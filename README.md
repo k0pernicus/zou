@@ -7,7 +7,8 @@ Snatch is a fast and interruptable download accelerator, written in Rust, from [
 ## Current features
 
 * **Simple**: a command line tool to manage easily your downloads ;
-* **Fast**: multithreading support.
+* **Fast**: multithreading support ;
+* **Mirrors aware**: download a single file from different servers.
 
 **NOTE**: _Zou_ is on _alpha_ version.
 This version runs well on remote contents with a length known **before** the download (with the `content-length` header from the server response).
@@ -46,6 +47,10 @@ OPTIONS:
 ARGS:
     <url>
 ```
+
+## Example
+
+This is an example to download the April version of the Archlinux iso, using two mirrors: `zou https://eu.mirrors.coltondrg.com/archlinux/iso/2017.04.01/archlinux-2017.04.01-x86_64.iso -m http://mirrors.aliyun.com/archlinux/iso/2017.04.01/ https://na.mirrors.coltondrg.com/archlinux/iso/2017.04.01/`
 
 ## File examples
 
