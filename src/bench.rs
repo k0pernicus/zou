@@ -1,6 +1,7 @@
 use client::GetResponse;
 use hyper::Client;
 use hyper::header::{ByteRangeSpec, Headers, Range};
+use MirrorsList;
 use URL;
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -9,9 +10,6 @@ use std::time::{Duration, Instant};
 const PING_TIMES: usize = 5;
 /// Number of bytes to download from the remote server
 const LEN_BENCH_CHUNK: u64 = 64;
-
-/// MirrorsList is an alias that contain fast URLs to download the file
-type MirrorsList<'a> = Vec<URL<'a>>;
 
 /// Launch a benchmark on a single URL
 /// This benchmark tests the network for this URL, downloading five times a 64 bits packet

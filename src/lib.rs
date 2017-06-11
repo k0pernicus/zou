@@ -29,3 +29,5 @@ pub type Chunks = Vec<Chunk>;
 pub type SChunks = Arc<Mutex<Chunks>>;
 /// Represents an URL
 pub type URL<'a> = &'a str;
+/// MirrorsList is an alias that contain fast URLs to download the file
+type MirrorsList<'a> = Vec<URL<'a>>;
