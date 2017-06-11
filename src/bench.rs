@@ -50,7 +50,6 @@ pub fn bench_mirrors<'a>(mirrors: MirrorsList<'a>, filename: &str) -> MirrorsLis
                 if subsec_nano != 0 {
                     b_mirrors.push((mirror, subsec_nano));
                 }
-                println!("{}: {}", mirror, subsec_nano);
             }
             None => (),
         }
