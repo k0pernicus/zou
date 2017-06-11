@@ -26,3 +26,5 @@ type Chunk = Vec<u8>;
 pub type Chunks = Vec<Chunk>;
 /// Represents a shared mutable reference of chunks
 pub type SChunks = Arc<Mutex<Chunks>>;
+/// Represents an URL
+pub type URL<'a> = &'a str;
