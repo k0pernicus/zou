@@ -36,7 +36,9 @@ impl GetResponse for Client {
                                        url: &str,
                                        custom_header: Headers)
                                        -> Result<Response, Error> {
-        self.request(Method::Head, url).headers(custom_header).send()
+        self.request(Method::Head, url)
+            .headers(custom_header)
+            .send()
     }
 
     fn get_http_response(&self, url: &str) -> Result<Response, Error> {
@@ -47,6 +49,8 @@ impl GetResponse for Client {
                                        url: &str,
                                        custom_header: Headers)
                                        -> Result<Response, Error> {
-        self.request(Method::Get, url).headers(custom_header).send()
+        self.request(Method::Get, url)
+            .headers(custom_header)
+            .send()
     }
 }
