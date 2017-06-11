@@ -43,6 +43,12 @@ fn main() {
         .arg(Arg::with_name("force")
                  .long("force")
                  .help("Assume Yes to all queries and do not prompt"))
+        .arg(Arg::with_name("mirrors")
+                 .long("mirrors")
+                 .short("m")
+                 .multiple(true)
+                 .takes_value(true)
+                 .help("Download using a list of mirrors - the list of mirrors is used WITH the original URL"))
         .arg(Arg::with_name("url")
             .index(1)
             //.multiple(true)
@@ -53,9 +59,15 @@ fn main() {
 
     let url = argparse.value_of("url").unwrap();
 
-    let file = argparse
+    let filename: &str = argparse
         .value_of("file")
         .unwrap_or_else(|| url.split('/').last().unwrap_or(DEFAULT_FILENAME));
+
+    let mirrors: Option<Vec<&str>> = if !argparse.is_present("mirrors") {
+        None
+    } else {
+        Some(argparse.values_of("mirrors").unwrap().collect())
+    };
 
     // Check if multi-threaded download is possible
     let mut threads: usize = value_t!(argparse, "threads", usize)
@@ -69,11 +81,11 @@ fn main() {
 
     if argparse.is_present("debug") {
         info!(&format!("version: {}", crate_version!()));
-        info!(&format!("file: {}", file));
+        info!(&format!("file: {}", filename));
         info!(&format!("threads: {}", threads));
     }
 
-    let local_path = Path::new(&file);
+    let local_path = Path::new(&filename);
 
     if local_path.exists() {
         if local_path.is_dir() {
@@ -92,15 +104,15 @@ fn main() {
         }
     }
 
-    let cargo_info = get_cargo_info(&url).expect("fail to parse url");
-    info!(&format!("# Remote content length: {}",
+    let cargo_info = get_cargo_info(&url, mirrors).expect("fail to parse url");
+    info!(&format!("Remote content length: {}",
                    format_filesize(cargo_info.content_length)));
 
     let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
 
     local_file
         .set_len(cargo_info.content_length)
-        .expect("Cannot extend file to download size!");
+        .expect("Cannot extend local file !");
     let out_file = OutputFileWriter::new(local_file);
 
     // If the server does not accept PartialContent status, download the remote file
