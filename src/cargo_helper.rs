@@ -9,26 +9,59 @@ use hyper::client::Client;
 use MirrorsList;
 use response::CheckResponseStatus;
 use std::result::Result;
+use std::path::Path;
+// use std::thread;
 use util::prompt_user;
+
+/// Get useful informations about the mirror (or server) state
+///
+/// # Arguments
+/// * `accept_partialcontent`: is the server accepts the PartialContent status ?
+/// * `is_accessible`: is the server is up, and is the response status is ok ?
+/// * `url`: the URL of the server
+struct MirrorInfo<'a> {
+    accept_partialcontent: bool,
+    is_accessible: bool,
+    url: &'a str,
+}
+
+impl<'a> Default for MirrorInfo<'a> {
+    /// Default data structure
+    fn default() -> MirrorInfo<'a> {
+        MirrorInfo {
+            accept_partialcontent: false,
+            is_accessible: false,
+            url: "",
+        }
+    }
+}
 
 pub struct CargoInfo<'a> {
     pub accept_partialcontent: bool,
     pub auth_header: Option<AuthorizationHeaderFactory>,
-    pub best_mirrors: Option<MirrorsList<'a>>,
+    pub best_mirrors: MirrorsList<'a>,
     pub content_length: Bytes,
 }
 
-pub fn get_cargo_info<'a>(url: &str,
-                          mirrors: Option<MirrorsList<'a>>)
-                          -> Result<CargoInfo<'a>, String> {
+fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
+
+    let mut mirror_info = MirrorInfo::default();
+    mirror_info.url = server_url;
+
+    let file_url = Path::new(server_url).join(filename);
+    // Check any Path error
+    if file_url.to_str().is_none() {
+        return mirror_info;
+    }
+    let file_url = file_url.to_str().unwrap();
     let hyper_client = Client::new();
+    let client_response = hyper_client.get_head_response(file_url).unwrap();
 
-    let client_response = hyper_client.get_head_response(url).unwrap();
-
-    info!("Waiting a response from the remote server... ");
+    info!(&format!("[{}] Waiting a response from the remote server... ",
+                   server_url));
 
     if !client_response.version.greater_than_http_11() {
-        warning!("HTTP version <= 1.0 detected");
+        warning!(&format!("[{}] HTTP version <= 1.0 detected", server_url));
     } else {
         ok!("");
     }
@@ -47,12 +80,14 @@ pub fn get_cargo_info<'a>(url: &str,
                                                          Some(password)))
                 }
                 _ => {
-                    return Err(format!("The remote content is protected by {} \
+                    error!(&format!("The remote content is protected by {} \
                                                  Authorization, which is not supported!\nYou \
                                                  can create a new issue to report this problem \
                                                  in https://github.\
                                                  com/k0pernicus/zou/issues/new",
-                                       a_type));
+                                    a_type));
+                    // Stop the function - the credentials are not OK
+                    return mirror_info;
                 }
             }
         }
@@ -64,11 +99,93 @@ pub fn get_cargo_info<'a>(url: &str,
             let mut headers = Headers::new();
             headers.set(header_factory.build_header());
             hyper_client
-                .get_head_response_using_headers(&url, headers)
+                .get_head_response_using_headers(file_url, headers)
                 .unwrap()
         }
         None => client_response,
     };
+
+    // If there is some trouble with the response, return back the information about the mirror
+    if !client_response.is_ok() {
+        return mirror_info;
+    }
+
+    mirror_info.is_accessible = true;
+
+    info!(&format!("[{}] Checking the server's support for PartialContent headers...",
+                   server_url));
+
+    // Ask the first byte, just to know if the server accept PartialContent status
+    let mut header = Headers::new();
+    header.set(Range::Bytes(vec![ByteRangeSpec::FromTo(0, 1)]));
+
+    let client_response = hyper_client
+        .get_head_response_using_headers(filename, header)
+        .unwrap();
+
+    // Is the mirror supports PartialContent status ?
+    mirror_info.accept_partialcontent = client_response.check_partialcontent_status();
+    mirror_info
+}
+
+/// Get Rust structure that contains network benchmarks
+pub fn get_cargo_info<'a>(filename: &str,
+                          server_urls: MirrorsList<'a>)
+                          -> Result<CargoInfo<'a>, String> {
+
+    info!("Getting informations about possible mirrors...");
+
+    let mut available_mirrors: MirrorsList<'a> = Vec::with_capacity(server_urls.len());
+    let mut jobs = Vec::with_capacity(server_urls.len());
+
+    for server_url in server_urls {
+        // jobs.push(thread::spawn(move || get_mirror_info(filename, server_url)));
+        jobs.push(get_mirror_info(filename, server_url));
+    }
+
+    // If any 'true' mirrors...
+    // TODO: For multi-threaded code
+    // for job in jobs {
+    //     match job.join() {
+    //         Ok(mirror_info) => {
+    //             if mirror_info.is_accessible && mirror_info.accept_partialcontent {
+    //                 info!(&format!("Mirror {} is ok!", mirror_info.url));
+    //                 available_mirrors.push(mirror_info.url);
+    //             } else {
+    //                 warning!(&format!("Mirror {} is not ok!", mirror_info.url));
+    //             }
+    //         }
+    //         Err(_) => error!(&format!("There is an internal error getting informations from a mirror...")),
+    //     }
+    // }
+
+    for mirror_info in jobs {
+        if mirror_info.is_accessible && mirror_info.accept_partialcontent {
+            info!(&format!("Mirror {} is ok!", mirror_info.url));
+            available_mirrors.push(mirror_info.url);
+        } else {
+            warning!(&format!("Mirror {} is not ok!", mirror_info.url));
+        }
+    }
+
+    if available_mirrors.is_empty() {
+        panic!("No mirrors available!");
+    } else {
+        info!(&format!("{} mirrors available!", available_mirrors.len()));
+    }
+
+    info!("Ranking mirrors...");
+
+    // Get best mirrors from the list of available mirrors
+    let best_mirrors = bench_mirrors(available_mirrors, filename);
+    info!("Getting the remote content length from the first mirror...");
+
+    let path_fst_mirror = Path::new(best_mirrors[0]).join(filename);
+    // Get the first mirror to get global informations
+    let fst_mirror = path_fst_mirror.to_str().unwrap();
+
+    let hyper_client = Client::new();
+    let client_response = hyper_client.get_head_response(fst_mirror).unwrap();
 
     let remote_content_length = match client_response.headers.get_content_length() {
         Some(remote_content_length) => remote_content_length,
@@ -85,33 +202,54 @@ pub fn get_cargo_info<'a>(url: &str,
             custom_http_header.set(Range::Bytes(vec![ByteRangeSpec::AllFrom(0)]));
             // Get a response from the server, using the custom HTTP request
             let client_response = hyper_client
-                .get_http_response_using_headers(&url, custom_http_header)
+                .get_http_response_using_headers(filename, custom_http_header)
                 .unwrap();
             // Try again to get the content length - if this one is unknown again, stop the program
             match client_response.headers.get_content_length() {
                 Some(remote_content_length) => remote_content_length,
                 None => {
-                    return Err("Second attempt has failed.".to_string());
+                    error!("Second attempt has failed.");
+                    0
                 }
             }
         }
     };
 
-    // Ask the first byte, just to know if the server accept PartialContent status
-    let mut header = Headers::new();
-    header.set(Range::Bytes(vec![ByteRangeSpec::FromTo(0, 1)]));
-
-    let client_response = hyper_client
-        .get_head_response_using_headers(url, header)
-        .unwrap();
-
-    info!("Checking the server's support for PartialContent headers...");
-
-    info!("Getting informations about possible mirrors...");
-
-    let best_mirrors: Option<MirrorsList<'a>> = match mirrors {
-        Some(_mirrors) => Some(bench_mirrors(_mirrors, url)),
+    let auth_type = client_response.headers.get_authorization_type();
+    let auth_header_factory = match auth_type {
+        Some(a_type) => {
+            match a_type {
+                AuthorizationType::Basic => {
+                    warning!("The remote content is protected by Basic Auth.");
+                    warning!("Please to enter below your credential informations.");
+                    let username = prompt_user("Username:");
+                    let password = prompt_user("Password:");
+                    Some(AuthorizationHeaderFactory::new(AuthorizationType::Basic,
+                                                         username,
+                                                         Some(password)))
+                }
+                _ => {
+                    panic!("The remote content is protected by {} \
+                                                 Authorization, which is not supported!\nYou \
+                                                 can create a new issue to report this problem \
+                                                 in https://github.\
+                                                 com/k0pernicus/zou/issues/new",
+                           a_type);
+                }
+            }
+        }
         None => None,
+    };
+
+    let client_response = match auth_header_factory.clone() {
+        Some(header_factory) => {
+            let mut headers = Headers::new();
+            headers.set(header_factory.build_header());
+            hyper_client
+                .get_head_response_using_headers(fst_mirror, headers)
+                .unwrap()
+        }
+        None => client_response,
     };
 
     Ok(CargoInfo {
