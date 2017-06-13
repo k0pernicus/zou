@@ -17,7 +17,7 @@ use std::fs::{File, remove_file};
 use std::path::Path;
 use std::process::exit;
 
-static DEFAULT_FILENAME: &'static str = "index.html";
+// static DEFAULT_FILENAME: &'static str = "index.html";
 
 fn main() {
 
@@ -57,17 +57,24 @@ fn main() {
 
     // Get informations from arguments
 
-    let url = argparse.value_of("url").unwrap();
+    // Get the URL as a Path structure
+    let url = Path::new(argparse.value_of("url").unwrap());
 
-    let filename: &str = argparse
-        .value_of("file")
-        .unwrap_or_else(|| url.split('/').last().unwrap_or(DEFAULT_FILENAME));
-
-    let mirrors: Option<Vec<&str>> = if !argparse.is_present("mirrors") {
-        None
-    } else {
-        Some(argparse.values_of("mirrors").unwrap().collect())
+    // Set the mirrors vectors
+    let mut servers_urls: Vec<&str> = match url.parent() {
+        Some(parent) => vec![parent.to_str().unwrap()],
+        None => vec![],
     };
+    // Set given mirrors
+    if argparse.is_present("mirrors") {
+        let mirrors_vec: Vec<&str> = argparse.values_of("mirrors").unwrap().collect();
+        for mirror in mirrors_vec {
+            servers_urls.push(mirror);
+        }
+    }
+
+    // Get the path filename
+    let filename = url.file_name().unwrap().to_str().unwrap();
 
     // Check if multi-threaded download is possible
     let mut threads: usize = value_t!(argparse, "threads", usize)
@@ -104,7 +111,7 @@ fn main() {
         }
     }
 
-    let cargo_info = get_cargo_info(&url, mirrors).expect("fail to parse url");
+    let cargo_info = get_cargo_info(filename, servers_urls).expect("fail to parse url");
     info!(&format!("Remote content length: {}",
                    format_filesize(cargo_info.content_length)));
 
@@ -123,7 +130,7 @@ fn main() {
         threads = 1;
     }
 
-    if download_chunks(cargo_info, out_file, threads as u64, &url) {
+    if download_chunks(cargo_info, out_file, threads as u64, filename) {
         ok!(&format!("Your download is available in {}",
                      local_path.to_str().unwrap()));
     } else {
