@@ -152,6 +152,8 @@ pub fn download_chunks(cargo_info: CargoInfo,
         }
         let monothreading = cargo_info.accept_partialcontent;
 
+        // TODO : Download from mirrors ( %i mod m_list )
+
         // Initialize the progress bar for that chunk
         initbar!(mp, mpb, chunk_length, chunk_index);
 
