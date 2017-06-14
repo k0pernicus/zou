@@ -2,9 +2,10 @@ use client::GetResponse;
 use hyper::Client;
 use hyper::header::{ByteRangeSpec, Headers, Range};
 use MirrorsList;
-use URL;
+use rayon::prelude::*;
 use std::path::Path;
 use std::time::{Duration, Instant};
+use URL;
 
 /// Number of times to ping the remote server
 const PING_TIMES: usize = 5;
@@ -41,19 +42,20 @@ pub fn bench_mirrors<'a>(mirrors: MirrorsList<'a>, filename: &str) -> MirrorsLis
     let mut bench_client = Client::default();
     bench_client.set_read_timeout(Some(Duration::from_secs(3)));
     // Get mirrors list
-    let mut b_mirrors: Vec<(&'a str, u32)> = Vec::with_capacity(PING_TIMES);
-    for mirror in mirrors.iter() {
-        let mirror_file = Path::new(mirror).join(filename);
-        match mirror_file.to_str() {
-            Some(_mirror) => {
-                let subsec_nano = launch_bench(&bench_client, _mirror);
-                if subsec_nano != 0 {
-                    b_mirrors.push((mirror, subsec_nano));
-                }
-            }
-            None => (),
-        }
-    }
+    // let mut b_mirrors: Vec<(&'a str, u32)> = Vec::with_capacity(PING_TIMES);
+    let mut b_mirrors: Vec<(&'a str, u32)> = mirrors
+        .par_iter()
+        // Launch bench tests
+        .map(|mirror| -> (&'a str, u32) {
+                 let mirror_file = Path::new(mirror).join(filename);
+                 match mirror_file.to_str() {
+                     Some(mirror_path) => (mirror, launch_bench(&bench_client, mirror_path)),
+                     None => (mirror, 0),
+                 }
+             })
+        // If the bench is equals to 0, an error occured
+        .filter(|x| x.1 != 0)
+        .collect();
     b_mirrors.sort_by_key(|k| k.1);
     b_mirrors.iter().map(|x| x.0).collect()
 }
