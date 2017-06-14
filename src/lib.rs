@@ -1,6 +1,7 @@
+extern crate ansi_term;
 extern crate hyper;
 extern crate pbr;
-extern crate ansi_term;
+extern crate rayon;
 
 use std::sync::{Arc, Mutex};
 
