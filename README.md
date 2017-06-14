@@ -28,7 +28,7 @@ Let's build a better `wget` (in Rust)!
 ## Usage
 
 ```
-Zou 0.1.0
+Zou 0.2.0
 Zou, a simple and fast download accelerator, written in Rust.
 
 USAGE:
@@ -86,7 +86,8 @@ Thank you for your interest in contributing to _Zou_ ! :-D
 
 * Why this fork ?
 Snatch has been developed when I was a R&D engineer at [DernierCri](https://derniercri.io) - it was a "just-for-fun" project.
-Today, I do not work anymore in/with this startup, and I want to experiment something different.
+Today, I do not work anymore in/with this startup, and I want to experiment something different.  
+`Zou` is now a fun way to hack with Rust! :-)
 
 * Libraries cannot be build
 Please go check if you are using the latest version of `rustc` (stable), running `rustup update`.
