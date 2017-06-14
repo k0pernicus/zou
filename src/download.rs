@@ -4,10 +4,12 @@ use client::GetResponse;
 use hyper::client::Client;
 use hyper::error::Error;
 use hyper::header::{ByteRangeSpec, Headers, Range};
+use MirrorsList;
 use pbr::{MultiBar, Pipe, ProgressBar, Units};
 use response::CheckResponseStatus;
 use std::cmp::min;
 use std::io::Read;
+use std::path::Path;
 use std::thread;
 use std::time::{Instant, Duration};
 use write::{OutputFileWriter, OutputChunkWriter};
@@ -25,7 +27,7 @@ const PROGRESS_UPDATE_INTERVAL_MILLIS: u64 = 500;
 struct RangeBytes(Bytes, Bytes);
 
 macro_rules! initbar {
-    ($mp:ident,$mpb:ident,$length:expr,$index:expr) => {
+    ($mp:ident,$mpb:ident,$length:expr,$index:expr,$server:expr) => {
         let mut $mp = $mpb.create_bar($length);
         $mp.tick_format("▏▎▍▌▋▊▉██▉▊▋▌▍▎▏");
         $mp.format("|#--|");
@@ -35,7 +37,7 @@ macro_rules! initbar {
         $mp.show_counter = false;
         $mp.show_time_left = true;
         $mp.set_units(Units::Bytes);
-        $mp.message(&format!("Chunk {} ", $index));
+        $mp.message(&format!("Chunk {} (from {}) ", $index, $server));
     }
 }
 
@@ -128,34 +130,35 @@ fn download_a_chunk(http_client: &Client,
 /// * the number of chunks that contains the remote content,
 /// * the URL of the remote content server,
 /// * a custom authorization to access and download the remote content.
-pub fn download_chunks(cargo_info: CargoInfo,
-                       mut out_file: OutputFileWriter,
-                       nb_chunks: u64,
-                       url: &str)
-                       -> bool {
+pub fn download_chunks<'a>(cargo_info: CargoInfo<'a>,
+                           mut out_file: OutputFileWriter,
+                           nb_chunks: u64,
+                           filename: &str)
+                           -> bool {
     let (content_length, auth_header_factory) = (cargo_info.content_length, cargo_info.auth_header);
-
     let global_chunk_length: u64 = (content_length / nb_chunks) + 1;
+
+    let mirrors: MirrorsList<'a> = cargo_info.best_mirrors;
     let mut jobs = vec![];
 
     let mut mpb = MultiBar::new();
-    mpb.println(&format!("Downloading {} chunks: ", nb_chunks));
+    mpb.println(&format!("Downloading {} chunk(s): ", nb_chunks));
 
     for chunk_index in 0..nb_chunks {
 
+        let server_url = mirrors[chunk_index as usize % mirrors.len()];
+        let path_url = Path::new(server_url).join(filename);
+        let url_clone = String::from(path_url.to_str().unwrap());
         let (mut http_header, RangeBytes(chunk_offset, chunk_length)) =
             get_header_from_index(chunk_index, content_length, global_chunk_length).unwrap();
         let hyper_client = Client::new();
-        let url_clone = String::from(url);
         if let Some(auth_header_factory) = auth_header_factory.clone() {
             http_header.set(auth_header_factory.build_header());
         }
         let monothreading = cargo_info.accept_partialcontent;
 
-        // TODO : Download from mirrors ( %i mod m_list )
-
         // Initialize the progress bar for that chunk
-        initbar!(mp, mpb, chunk_length, chunk_index);
+        initbar!(mp, mpb, chunk_length, chunk_index, server_url);
 
         let chunk_writer = out_file.get_chunk_writer(chunk_offset);
 
