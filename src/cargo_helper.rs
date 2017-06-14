@@ -10,8 +10,6 @@ use MirrorsList;
 use response::CheckResponseStatus;
 use std::result::Result;
 use std::path::Path;
-use std::sync::Arc;
-use std::thread;
 use rayon::prelude::*;
 use util::prompt_user;
 
