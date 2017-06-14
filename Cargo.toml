@@ -1,6 +1,6 @@
 [package]
 name = "zou"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Antonin Carette <antonin.carette@gmail.com>"]
 description = "A simple and fast download accelerator"
 repository = "https://github.com/k0pernicus/zou"
