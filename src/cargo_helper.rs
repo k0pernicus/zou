@@ -10,7 +10,9 @@ use MirrorsList;
 use response::CheckResponseStatus;
 use std::result::Result;
 use std::path::Path;
-// use std::thread;
+use std::sync::Arc;
+use std::thread;
+use rayon::prelude::*;
 use util::prompt_user;
 
 /// Get useful informations about the mirror (or server) state
@@ -49,12 +51,14 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
     mirror_info.url = server_url;
 
     let file_url = Path::new(server_url).join(filename);
+    info!(&format!("Checking server {}", server_url));
     // Check any Path error
     if file_url.to_str().is_none() {
         return mirror_info;
     }
     let file_url = file_url.to_str().unwrap();
     let hyper_client = Client::new();
+    // hyper_client.set_read_timeout(Some(Duration::from_secs(3)));
     let client_response = hyper_client.get_head_response(file_url).unwrap();
 
     info!(&format!("[{}] Waiting a response from the remote server... ",
@@ -120,7 +124,7 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
     header.set(Range::Bytes(vec![ByteRangeSpec::FromTo(0, 1)]));
 
     let client_response = hyper_client
-        .get_head_response_using_headers(filename, header)
+        .get_head_response_using_headers(file_url, header)
         .unwrap();
 
     // Is the mirror supports PartialContent status ?
@@ -136,42 +140,26 @@ pub fn get_cargo_info<'a>(filename: &str,
     info!("Getting informations about possible mirrors...");
 
     let mut available_mirrors: MirrorsList<'a> = Vec::with_capacity(server_urls.len());
-    let mut jobs = Vec::with_capacity(server_urls.len());
-
-    for server_url in server_urls {
-        // jobs.push(thread::spawn(move || get_mirror_info(filename, server_url)));
-        jobs.push(get_mirror_info(filename, server_url));
-    }
+    let candidates: Vec<MirrorInfo<'a>> = server_urls
+        .par_iter()
+        .map(|server_url| get_mirror_info(filename, server_url))
+        .collect();
 
     // If any 'true' mirrors...
     // TODO: For multi-threaded code
-    // for job in jobs {
-    //     match job.join() {
-    //         Ok(mirror_info) => {
-    //             if mirror_info.is_accessible && mirror_info.accept_partialcontent {
-    //                 info!(&format!("Mirror {} is ok!", mirror_info.url));
-    //                 available_mirrors.push(mirror_info.url);
-    //             } else {
-    //                 warning!(&format!("Mirror {} is not ok!", mirror_info.url));
-    //             }
-    //         }
-    //         Err(_) => error!(&format!("There is an internal error getting informations from a mirror...")),
-    //     }
-    // }
-
-    for mirror_info in jobs {
-        if mirror_info.is_accessible && mirror_info.accept_partialcontent {
-            info!(&format!("Mirror {} is ok!", mirror_info.url));
-            available_mirrors.push(mirror_info.url);
+    for candidate in candidates {
+        if candidate.is_accessible && candidate.accept_partialcontent {
+            info!(&format!("Mirror {} is ok!", candidate.url));
+            available_mirrors.push(candidate.url);
         } else {
-            warning!(&format!("Mirror {} is not ok!", mirror_info.url));
+            warning!(&format!("Mirror {} is not ok!", candidate.url));
         }
     }
 
     if available_mirrors.is_empty() {
         panic!("No mirrors available!");
     } else {
-        info!(&format!("{} mirrors available!", available_mirrors.len()));
+        info!(&format!("{} mirror(s) available!", available_mirrors.len()));
     }
 
     info!("Ranking mirrors...");
@@ -186,34 +174,6 @@ pub fn get_cargo_info<'a>(filename: &str,
 
     let hyper_client = Client::new();
     let client_response = hyper_client.get_head_response(fst_mirror).unwrap();
-
-    let remote_content_length = match client_response.headers.get_content_length() {
-        Some(remote_content_length) => remote_content_length,
-        None => {
-            warning!("Cannot get the remote content length, using an \
-                                 HEADER request.");
-            warning!("Trying to send an HTTP request, to get the remote \
-                                 content length...");
-
-            // Trying to force the server to send to us the remote content length
-            let mut custom_http_header = Headers::new();
-            // HTTP header to get all the remote content - if the response is OK, get the
-            // ContentLength information sent back from the server
-            custom_http_header.set(Range::Bytes(vec![ByteRangeSpec::AllFrom(0)]));
-            // Get a response from the server, using the custom HTTP request
-            let client_response = hyper_client
-                .get_http_response_using_headers(filename, custom_http_header)
-                .unwrap();
-            // Try again to get the content length - if this one is unknown again, stop the program
-            match client_response.headers.get_content_length() {
-                Some(remote_content_length) => remote_content_length,
-                None => {
-                    error!("Second attempt has failed.");
-                    0
-                }
-            }
-        }
-    };
 
     let auth_type = client_response.headers.get_authorization_type();
     let auth_header_factory = match auth_type {
@@ -250,6 +210,34 @@ pub fn get_cargo_info<'a>(filename: &str,
                 .unwrap()
         }
         None => client_response,
+    };
+
+    let remote_content_length = match client_response.headers.get_content_length() {
+        Some(remote_content_length) => remote_content_length,
+        None => {
+            warning!("Cannot get the remote content length, using an \
+                                 HEADER request.");
+            warning!("Trying to send an HTTP request, to get the remote \
+                                 content length...");
+
+            // Trying to force the server to send to us the remote content length
+            let mut custom_http_header = Headers::new();
+            // HTTP header to get all the remote content - if the response is OK, get the
+            // ContentLength information sent back from the server
+            custom_http_header.set(Range::Bytes(vec![ByteRangeSpec::AllFrom(0)]));
+            // Get a response from the server, using the custom HTTP request
+            let client_response = hyper_client
+                .get_http_response_using_headers(filename, custom_http_header)
+                .unwrap();
+            // Try again to get the content length - if this one is unknown again, stop the program
+            match client_response.headers.get_content_length() {
+                Some(remote_content_length) => remote_content_length,
+                None => {
+                    error!("Second attempt has failed.");
+                    0
+                }
+            }
+        }
     };
 
     Ok(CargoInfo {
