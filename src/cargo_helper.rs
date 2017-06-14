@@ -239,7 +239,8 @@ pub fn get_cargo_info<'a>(filename: &str,
     };
 
     Ok(CargoInfo {
-           accept_partialcontent: client_response.check_partialcontent_status(),
+           // TODO: TO REFACTOR --- Be careful if there is only one server...
+           accept_partialcontent: true,
            auth_header: auth_header_factory,
            best_mirrors: best_mirrors,
            content_length: remote_content_length,
