@@ -164,7 +164,6 @@ pub fn get_cargo_info<'a>(filename: &str,
 
     // Get best mirrors from the list of available mirrors
     let best_mirrors = bench_mirrors(available_mirrors, filename);
-    info!("Getting the remote content length from the first mirror...");
 
     let path_fst_mirror = Path::new(best_mirrors[0]).join(filename);
     // Get the first mirror to get global informations
