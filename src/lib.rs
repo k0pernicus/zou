@@ -17,6 +17,7 @@ pub mod contentlength;
 pub mod download;
 pub mod filesize;
 pub mod http_version;
+pub mod protocol;
 pub mod response;
 pub mod util;
 pub mod write;
