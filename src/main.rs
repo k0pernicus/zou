@@ -121,7 +121,10 @@ fn main() {
         }
     }
 
-    let cargo_info = get_cargo_info(filename, servers_urls).expect("fail to parse url");
+    let ssl_support = argparse.is_present("ssl_support");
+
+    let cargo_info =
+        get_cargo_info(filename, servers_urls, ssl_support).expect("fail to parse url");
     info!(&format!(
         "Remote content length: {}",
         format_filesize(cargo_info.content_length)
@@ -144,7 +147,7 @@ fn main() {
         threads = 1;
     }
 
-    if download_chunks(cargo_info, out_file, threads as u64, filename) {
+    if download_chunks(cargo_info, out_file, threads as u64, filename, ssl_support) {
         ok!(&format!(
             "Your download is available in {}",
             local_path.to_str().unwrap()
