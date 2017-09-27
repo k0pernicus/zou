@@ -1,5 +1,6 @@
 extern crate ansi_term;
 extern crate hyper;
+extern crate hyper_openssl;
 extern crate pbr;
 extern crate rayon;
 
@@ -19,6 +20,8 @@ pub mod http_version;
 pub mod response;
 pub mod util;
 pub mod write;
+
+pub static mut SSL_SUPPORT: bool = false;
 
 /// Represents a number of bytes, as `u64`.
 pub type Bytes = u64;
