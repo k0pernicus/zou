@@ -50,7 +50,7 @@ fn main() {
         .arg(Arg::with_name("ssl_support")
                 .long("ssl_support")
                 .short("s")
-                .help("Active the SSL Client to download files"))
+                .help("Switch to an SSL client"))
         .arg(Arg::with_name("url")
             .index(1)
             //.multiple(true)
