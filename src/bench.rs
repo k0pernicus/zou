@@ -1,4 +1,4 @@
-use client::GetResponse;
+use client::{GetResponse, get_hyper_client};
 use hyper::Client;
 use hyper::header::{ByteRangeSpec, Headers, Range};
 use MirrorsList;
@@ -20,7 +20,9 @@ fn launch_bench<'a>(bench_client: &Client, url: URL<'a>) -> u32 {
     for index in 0..PING_TIMES {
         let now = Instant::now();
         let mut header = Headers::new();
-        header.set(Range::Bytes(vec![ByteRangeSpec::FromTo(0, LEN_BENCH_CHUNK)]));
+        header.set(Range::Bytes(
+            vec![ByteRangeSpec::FromTo(0, LEN_BENCH_CHUNK)],
+        ));
         match bench_client.get_head_response_using_headers(url, header) {
             Ok(_) => c_ping_time[index] = now.elapsed().subsec_nanos(),
             Err(_) => break,
@@ -39,7 +41,7 @@ fn launch_bench<'a>(bench_client: &Client, url: URL<'a>) -> u32 {
 /// This function returns a list of URLs, which is sorted by median measures (the first URL is the fastest server)
 pub fn bench_mirrors<'a>(mirrors: MirrorsList<'a>, filename: &str) -> MirrorsList<'a> {
     // Hyper client to make benchmarks
-    let mut bench_client = Client::default();
+    let mut bench_client = get_hyper_client();
     bench_client.set_read_timeout(Some(Duration::from_secs(3)));
     // Get mirrors list
     // let mut b_mirrors: Vec<(&'a str, u32)> = Vec::with_capacity(PING_TIMES);

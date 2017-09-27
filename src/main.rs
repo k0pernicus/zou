@@ -6,6 +6,7 @@ extern crate libzou;
 extern crate num_cpus;
 
 use clap::{App, Arg};
+use libzou::SSL_SUPPORT;
 use libzou::cargo_helper::get_cargo_info;
 use libzou::download::download_chunks;
 use libzou::filesize::format_filesize;
@@ -16,8 +17,6 @@ mod logs;
 use std::fs::{File, remove_file};
 use std::path::Path;
 use std::process::exit;
-
-// static DEFAULT_FILENAME: &'static str = "index.html";
 
 fn main() {
 
@@ -49,6 +48,10 @@ fn main() {
                  .multiple(true)
                  .takes_value(true)
                  .help("Download using a list of mirrors - the list of mirrors is used WITH the original URL"))
+        .arg(Arg::with_name("ssl_support")
+                .long("ssl_support")
+                .short("s")
+                .help("Active the SSL Client to download files"))
         .arg(Arg::with_name("url")
             .index(1)
             //.multiple(true)
@@ -92,6 +95,10 @@ fn main() {
         info!(&format!("version: {}", crate_version!()));
         info!(&format!("file: {}", filename));
         info!(&format!("threads: {}", threads));
+    }
+
+    unsafe {
+        SSL_SUPPORT = argparse.is_present("ssl_support");
     }
 
     let local_path = Path::new(&filename);

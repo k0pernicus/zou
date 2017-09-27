@@ -1,11 +1,10 @@
 use authorization::{AuthorizationHeaderFactory, AuthorizationType, GetAuthorizationType};
 use Bytes;
 use bench::bench_mirrors;
-use client::GetResponse;
+use client::{GetResponse, get_hyper_client};
 use contentlength::GetContentLength;
 use http_version::ValidateHttpVersion;
 use hyper::header::{ByteRangeSpec, Headers, Range};
-use hyper::client::Client;
 use MirrorsList;
 use response::CheckResponseStatus;
 use std::result::Result;
@@ -55,7 +54,7 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
         return mirror_info;
     }
     let file_url = file_url.to_str().unwrap();
-    let hyper_client = Client::new();
+    let hyper_client = get_hyper_client();
     // hyper_client.set_read_timeout(Some(Duration::from_secs(3)));
     let client_response = hyper_client.get_head_response(file_url).unwrap();
 
@@ -183,7 +182,7 @@ pub fn get_cargo_info<'a>(
     // Get the first mirror to get global informations
     let fst_mirror = path_fst_mirror.to_str().unwrap();
 
-    let hyper_client = Client::new();
+    let hyper_client = get_hyper_client();
     let client_response = hyper_client.get_head_response(fst_mirror).unwrap();
 
     let auth_type = client_response.headers.get_authorization_type();

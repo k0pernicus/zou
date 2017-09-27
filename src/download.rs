@@ -1,6 +1,6 @@
 use cargo_helper::CargoInfo;
 use Bytes;
-use client::GetResponse;
+use client::{GetResponse, get_hyper_client};
 use hyper::client::Client;
 use hyper::error::Error;
 use hyper::header::{ByteRangeSpec, Headers, Range};
@@ -42,10 +42,11 @@ macro_rules! initbar {
 }
 
 /// Function to get the current chunk length, based on the chunk index.
-fn get_chunk_length(chunk_index: u64,
-                    content_length: Bytes,
-                    global_chunk_length: Bytes)
-                    -> Option<RangeBytes> {
+fn get_chunk_length(
+    chunk_index: u64,
+    content_length: Bytes,
+    global_chunk_length: Bytes,
+) -> Option<RangeBytes> {
 
     if content_length == 0 || global_chunk_length == 0 {
         return None;
@@ -57,8 +58,10 @@ fn get_chunk_length(chunk_index: u64,
         return None;
     }
 
-    let e_range: Bytes = min(content_length - 1,
-                             ((chunk_index + 1) * global_chunk_length) - 1);
+    let e_range: Bytes = min(
+        content_length - 1,
+        ((chunk_index + 1) * global_chunk_length) - 1,
+    );
 
     Some(RangeBytes(b_range, e_range))
 
@@ -66,10 +69,11 @@ fn get_chunk_length(chunk_index: u64,
 
 
 /// Function to get the HTTP header to send to the file server, for a chunk (specified by its index)
-fn get_header_from_index(chunk_index: u64,
-                         content_length: Bytes,
-                         global_chunk_length: Bytes)
-                         -> Option<(Headers, RangeBytes)> {
+fn get_header_from_index(
+    chunk_index: u64,
+    content_length: Bytes,
+    global_chunk_length: Bytes,
+) -> Option<(Headers, RangeBytes)> {
 
     get_chunk_length(chunk_index, content_length, global_chunk_length).map(|range| {
         let mut header = Headers::new();
@@ -81,13 +85,14 @@ fn get_header_from_index(chunk_index: u64,
 
 /// Function to get from the server the content of a chunk.
 /// This function returns a Result type - Bytes if the content of the header is accessible, an Error type otherwise.
-fn download_a_chunk(http_client: &Client,
-                    http_header: Headers,
-                    mut chunk_writer: OutputChunkWriter,
-                    url: &str,
-                    mpb: &mut ProgressBar<Pipe>,
-                    monothreading: bool)
-                    -> Result<Bytes, Error> {
+fn download_a_chunk(
+    http_client: &Client,
+    http_header: Headers,
+    mut chunk_writer: OutputChunkWriter,
+    url: &str,
+    mpb: &mut ProgressBar<Pipe>,
+    monothreading: bool,
+) -> Result<Bytes, Error> {
 
     let mut body = http_client
         .get_http_response_using_headers(url, http_header)
@@ -130,11 +135,12 @@ fn download_a_chunk(http_client: &Client,
 /// * the number of chunks that contains the remote content,
 /// * the URL of the remote content server,
 /// * a custom authorization to access and download the remote content.
-pub fn download_chunks<'a>(cargo_info: CargoInfo<'a>,
-                           mut out_file: OutputFileWriter,
-                           nb_chunks: u64,
-                           filename: &str)
-                           -> bool {
+pub fn download_chunks<'a>(
+    cargo_info: CargoInfo<'a>,
+    mut out_file: OutputFileWriter,
+    nb_chunks: u64,
+    filename: &str,
+) -> bool {
     let (content_length, auth_header_factory) = (cargo_info.content_length, cargo_info.auth_header);
     let global_chunk_length: u64 = (content_length / nb_chunks) + 1;
 
@@ -151,7 +157,7 @@ pub fn download_chunks<'a>(cargo_info: CargoInfo<'a>,
         let url_clone = String::from(path_url.to_str().unwrap());
         let (mut http_header, RangeBytes(chunk_offset, chunk_length)) =
             get_header_from_index(chunk_index, content_length, global_chunk_length).unwrap();
-        let hyper_client = Client::new();
+        let hyper_client = get_hyper_client();
         if let Some(auth_header_factory) = auth_header_factory.clone() {
             http_header.set(auth_header_factory.build_header());
         }
@@ -163,27 +169,31 @@ pub fn download_chunks<'a>(cargo_info: CargoInfo<'a>,
         let chunk_writer = out_file.get_chunk_writer(chunk_offset);
 
         // In this work, we push a boolean value to know if the chunk is OK
-        jobs.push(thread::spawn(move || match download_a_chunk(&hyper_client,
-                                                               http_header,
-                                                               chunk_writer,
-                                                               &url_clone,
-                                                               &mut mp,
-                                                               monothreading) {
-                                    Ok(bytes_written) => {
-            mp.finish();
-            if bytes_written == 0 {
-                error!(&format!("The downloaded chunk {} is empty", chunk_index));
+        jobs.push(thread::spawn(move || match download_a_chunk(
+            &hyper_client,
+            http_header,
+            chunk_writer,
+            &url_clone,
+            &mut mp,
+            monothreading,
+        ) {
+            Ok(bytes_written) => {
+                mp.finish();
+                if bytes_written == 0 {
+                    error!(&format!("The downloaded chunk {} is empty", chunk_index));
+                }
+                return true;
             }
-            return true;
-        }
-                                    Err(error) => {
-            mp.finish();
-            error!(&format!("Cannot download the chunk {}, due to error {}",
-                            chunk_index,
-                            error));
-            return false;
-        }
-                                }));
+            Err(error) => {
+                mp.finish();
+                error!(&format!(
+                    "Cannot download the chunk {}, due to error {}",
+                    chunk_index,
+                    error
+                ));
+                return false;
+            }
+        }));
     }
 
     mpb.listen();
@@ -260,8 +270,10 @@ mod test_header {
     fn good_chunk_length_should_return_a_good_header() {
         let mut test_header = Headers::new();
         test_header.set(Range::Bytes(vec![ByteRangeSpec::FromTo(750, 997)]));
-        assert_eq!(Some((test_header, RangeBytes(750, 247))),
-                   get_header_from_index(3, 998, 250));
+        assert_eq!(
+            Some((test_header, RangeBytes(750, 247))),
+            get_header_from_index(3, 998, 250)
+        );
     }
 
 }
