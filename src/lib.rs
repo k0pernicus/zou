@@ -21,8 +21,6 @@ pub mod response;
 pub mod util;
 pub mod write;
 
-pub static mut SSL_SUPPORT: bool = false;
-
 /// Represents a number of bytes, as `u64`.
 pub type Bytes = u64;
 /// Represents a 'chunk', which is just a piece of bytes.
