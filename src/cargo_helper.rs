@@ -59,8 +59,10 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
     // hyper_client.set_read_timeout(Some(Duration::from_secs(3)));
     let client_response = hyper_client.get_head_response(file_url).unwrap();
 
-    info!(&format!("[{}] Waiting a response from the remote server... ",
-                   server_url));
+    info!(&format!(
+        "[{}] Waiting a response from the remote server... ",
+        server_url
+    ));
 
     if !client_response.version.greater_than_http_11() {
         warning!(&format!("[{}] HTTP version <= 1.0 detected", server_url));
@@ -77,17 +79,21 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
                     warning!("Please to enter below your credential informations.");
                     let username = prompt_user("Username:");
                     let password = prompt_user("Password:");
-                    Some(AuthorizationHeaderFactory::new(AuthorizationType::Basic,
-                                                         username,
-                                                         Some(password)))
+                    Some(AuthorizationHeaderFactory::new(
+                        AuthorizationType::Basic,
+                        username,
+                        Some(password),
+                    ))
                 }
                 _ => {
-                    error!(&format!("The remote content is protected by {} \
+                    error!(&format!(
+                        "The remote content is protected by {} \
                                                  Authorization, which is not supported!\nYou \
                                                  can create a new issue to report this problem \
                                                  in https://github.\
                                                  com/k0pernicus/zou/issues/new",
-                                    a_type));
+                        a_type
+                    ));
                     // Stop the function - the credentials are not OK
                     return mirror_info;
                 }
@@ -114,8 +120,10 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
 
     mirror_info.is_accessible = true;
 
-    info!(&format!("[{}] Checking the server's support for PartialContent headers...",
-                   server_url));
+    info!(&format!(
+        "[{}] Checking the server's support for PartialContent headers...",
+        server_url
+    ));
 
     // Ask the first byte, just to know if the server accept PartialContent status
     let mut header = Headers::new();
@@ -131,39 +139,45 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
 }
 
 /// Get Rust structure that contains network benchmarks
-pub fn get_cargo_info<'a>(filename: &str,
-                          server_urls: MirrorsList<'a>)
-                          -> Result<CargoInfo<'a>, String> {
+pub fn get_cargo_info<'a>(
+    filename: &str,
+    server_urls: MirrorsList<'a>,
+) -> Result<CargoInfo<'a>, String> {
 
-    info!("Getting informations about possible mirrors...");
+    let best_mirrors = match server_urls.len() {
+        0 | 1 => server_urls,
+        _ => {
+            info!("Getting informations about possible mirrors...");
 
-    let mut available_mirrors: MirrorsList<'a> = Vec::with_capacity(server_urls.len());
-    let candidates: Vec<MirrorInfo<'a>> = server_urls
-        .par_iter()
-        .map(|server_url| get_mirror_info(filename, server_url))
-        .collect();
+            let mut available_mirrors: MirrorsList<'a> = Vec::with_capacity(server_urls.len());
+            let candidates: Vec<MirrorInfo<'a>> = server_urls
+                .par_iter()
+                .map(|server_url| get_mirror_info(filename, server_url))
+                .collect();
 
-    // If any 'true' mirrors...
-    // TODO: For multi-threaded code
-    for candidate in candidates {
-        if candidate.is_accessible && candidate.accept_partialcontent {
-            info!(&format!("Mirror {} is ok!", candidate.url));
-            available_mirrors.push(candidate.url);
-        } else {
-            warning!(&format!("Mirror {} is not ok!", candidate.url));
+            // If any 'true' mirrors...
+            // TODO: For multi-threaded code
+            for candidate in candidates {
+                if candidate.is_accessible && candidate.accept_partialcontent {
+                    info!(&format!("Mirror {} is ok!", candidate.url));
+                    available_mirrors.push(candidate.url);
+                } else {
+                    warning!(&format!("Mirror {} is not ok!", candidate.url));
+                }
+            }
+
+            if available_mirrors.is_empty() {
+                panic!("No mirrors available!");
+            } else {
+                info!(&format!("{} mirror(s) available!", available_mirrors.len()));
+            }
+
+            info!("Ranking mirrors...");
+
+            // Get best mirrors from the list of available mirrors
+            bench_mirrors(available_mirrors, filename)
         }
-    }
-
-    if available_mirrors.is_empty() {
-        panic!("No mirrors available!");
-    } else {
-        info!(&format!("{} mirror(s) available!", available_mirrors.len()));
-    }
-
-    info!("Ranking mirrors...");
-
-    // Get best mirrors from the list of available mirrors
-    let best_mirrors = bench_mirrors(available_mirrors, filename);
+    };
 
     let path_fst_mirror = Path::new(best_mirrors[0]).join(filename);
     // Get the first mirror to get global informations
@@ -181,17 +195,21 @@ pub fn get_cargo_info<'a>(filename: &str,
                     warning!("Please to enter below your credential informations.");
                     let username = prompt_user("Username:");
                     let password = prompt_user("Password:");
-                    Some(AuthorizationHeaderFactory::new(AuthorizationType::Basic,
-                                                         username,
-                                                         Some(password)))
+                    Some(AuthorizationHeaderFactory::new(
+                        AuthorizationType::Basic,
+                        username,
+                        Some(password),
+                    ))
                 }
                 _ => {
-                    panic!("The remote content is protected by {} \
+                    panic!(
+                        "The remote content is protected by {} \
                                                  Authorization, which is not supported!\nYou \
                                                  can create a new issue to report this problem \
                                                  in https://github.\
                                                  com/k0pernicus/zou/issues/new",
-                           a_type);
+                        a_type
+                    );
                 }
             }
         }
@@ -212,10 +230,14 @@ pub fn get_cargo_info<'a>(filename: &str,
     let remote_content_length = match client_response.headers.get_content_length() {
         Some(remote_content_length) => remote_content_length,
         None => {
-            warning!("Cannot get the remote content length, using an \
-                                 HEADER request.");
-            warning!("Trying to send an HTTP request, to get the remote \
-                                 content length...");
+            warning!(
+                "Cannot get the remote content length, using an \
+                                 HEADER request."
+            );
+            warning!(
+                "Trying to send an HTTP request, to get the remote \
+                                 content length..."
+            );
 
             // Trying to force the server to send to us the remote content length
             let mut custom_http_header = Headers::new();
@@ -238,10 +260,10 @@ pub fn get_cargo_info<'a>(filename: &str,
     };
 
     Ok(CargoInfo {
-           // TODO: TO REFACTOR --- Be careful if there is only one server...
-           accept_partialcontent: true,
-           auth_header: auth_header_factory,
-           best_mirrors: best_mirrors,
-           content_length: remote_content_length,
-       })
+        // TODO: TO REFACTOR --- Be careful if there is only one server...
+        accept_partialcontent: true,
+        auth_header: auth_header_factory,
+        best_mirrors: best_mirrors,
+        content_length: remote_content_length,
+    })
 }
