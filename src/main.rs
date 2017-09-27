@@ -9,6 +9,7 @@ use clap::{App, Arg};
 use libzou::cargo_helper::get_cargo_info;
 use libzou::download::download_chunks;
 use libzou::filesize::format_filesize;
+use libzou::protocol::{get_protocol, Protocol};
 use libzou::util::prompt_user;
 use libzou::write::OutputFileWriter;
 #[macro_use]
@@ -121,7 +122,16 @@ fn main() {
         }
     }
 
-    let ssl_support = argparse.is_present("ssl_support");
+    // Get automaticaly the protocol from the given URL
+    let ssl_support = match get_protocol(url.to_str().unwrap()) {
+        Some(protocol) => match protocol {
+            // If the protocol is HTTP, return the user decision for the HTTPS client
+            Protocol::HTTP => argparse.is_present("ssl_support"),
+            // Force to use HTTPS client
+            Protocol::HTTPS => true,
+        },
+        None => epanic!("Unknown protocol!"),
+    };
 
     let cargo_info =
         get_cargo_info(filename, servers_urls, ssl_support).expect("fail to parse url");
