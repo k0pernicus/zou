@@ -6,21 +6,34 @@ use hyper::method::Method;
 use hyper::net::HttpsConnector;
 use hyper_openssl::OpensslClient;
 
-use SSL_SUPPORT;
+/// Structure to store if SSL is required, and to
+/// implement a default HTTP/HTTPS client
+pub struct Config {
+    pub enable_ssl: bool,
+}
 
-/// Returns an Hyper client, which enables (or not) an HTTPS connector
-pub fn get_hyper_client() -> Client {
-    unsafe {
-        if !SSL_SUPPORT {
+impl Config {
+    /// Get the HTTP/HTTPS Hyper client
+    pub fn get_hyper_client(&self) -> Client {
+        if !self.enable_ssl {
             return Client::default();
         }
+        Client::default_ssl()
     }
-    // Get client enabling SSL
-    let ssl = OpensslClient::new().unwrap();
-    // Connect the SSL client with HttpsConnector from Hyper
-    let connector = HttpsConnector::new(ssl);
-    // Return the client
-    Client::with_connector(connector)
+}
+
+/// Trait to instantiate an Hyper client, with SSL support
+trait SSLSupport {
+    /// Function to return a Client, with SSL support
+    fn default_ssl() -> Client;
+}
+
+impl SSLSupport for Client {
+    fn default_ssl() -> Client {
+        let ssl = OpensslClient::new().unwrap();
+        let connector = HttpsConnector::new(ssl);
+        Client::with_connector(connector)
+    }
 }
 
 /// Trait that represents some methods to send a specific request
