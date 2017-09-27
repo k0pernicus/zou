@@ -79,11 +79,13 @@ fn main() {
     // Check if multi-threaded download is possible
     let mut threads: usize = value_t!(argparse, "threads", usize)
         .and_then(|v| if v != 0 {
-                      Ok(v)
-                  } else {
-                      Err(clap::Error::with_description("Cannot download a file using 0 thread",
-                                                        clap::ErrorKind::InvalidValue))
-                  })
+            Ok(v)
+        } else {
+            Err(clap::Error::with_description(
+                "Cannot download a file using 0 thread",
+                clap::ErrorKind::InvalidValue,
+            ))
+        })
         .unwrap_or(num_cpus::get_physical());
 
     if argparse.is_present("debug") {
@@ -96,43 +98,55 @@ fn main() {
 
     if local_path.exists() {
         if local_path.is_dir() {
-            epanic!("The local path to store the remote content is already exists, \
-                        and is a directory!");
+            epanic!(
+                "The local path to store the remote content is already exists, \
+                        and is a directory!"
+            );
         }
         if !argparse.is_present("force") {
-            let user_input = prompt_user("The path to store the file already exists! \
-                                          Do you want to override it? [y/N]");
+            let user_input = prompt_user(
+                "The path to store the file already exists! \
+                                          Do you want to override it? [y/N]",
+            );
             if !(user_input == "y" || user_input == "Y") {
                 exit(0);
             }
         } else {
-            warning!("The path to store the file already exists! \
-                                 It is going to be overriden.");
+            warning!(
+                "The path to store the file already exists! \
+                                 It is going to be overriden."
+            );
         }
     }
 
     let cargo_info = get_cargo_info(filename, servers_urls).expect("fail to parse url");
-    info!(&format!("Remote content length: {}",
-                   format_filesize(cargo_info.content_length)));
+    info!(&format!(
+        "Remote content length: {}",
+        format_filesize(cargo_info.content_length)
+    ));
 
     let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
 
-    local_file
-        .set_len(cargo_info.content_length)
-        .expect("Cannot extend local file !");
+    local_file.set_len(cargo_info.content_length).expect(
+        "Cannot extend local file !",
+    );
     let out_file = OutputFileWriter::new(local_file);
 
     // If the server does not accept PartialContent status, download the remote file
     // using only one thread
     if !cargo_info.accept_partialcontent {
-        warning!("The remote server does not accept PartialContent status! \
-                             Downloading the remote file using one thread.");
+        warning!(
+            "The remote server does not accept PartialContent status! \
+                             Downloading the remote file using one thread."
+        );
         threads = 1;
     }
 
     if download_chunks(cargo_info, out_file, threads as u64, filename) {
-        ok!(&format!("Your download is available in {}",
-                     local_path.to_str().unwrap()));
+        ok!(&format!(
+            "Your download is available in {}",
+            local_path.to_str().unwrap()
+        ));
     } else {
         // If the file is not ok, delete it from the file system
         error!("Download failed! An error occured - erasing file... ");
