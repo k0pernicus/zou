@@ -6,7 +6,6 @@ extern crate libzou;
 extern crate num_cpus;
 
 use clap::{App, Arg};
-use libzou::SSL_SUPPORT;
 use libzou::cargo_helper::get_cargo_info;
 use libzou::download::download_chunks;
 use libzou::filesize::format_filesize;
@@ -95,10 +94,6 @@ fn main() {
         info!(&format!("version: {}", crate_version!()));
         info!(&format!("file: {}", filename));
         info!(&format!("threads: {}", threads));
-    }
-
-    unsafe {
-        SSL_SUPPORT = argparse.is_present("ssl_support");
     }
 
     let local_path = Path::new(&filename);
