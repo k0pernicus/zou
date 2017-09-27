@@ -1,4 +1,4 @@
-use client::{GetResponse, get_hyper_client};
+use client::{Config, GetResponse};
 use hyper::Client;
 use hyper::header::{ByteRangeSpec, Headers, Range};
 use MirrorsList;
@@ -39,9 +39,14 @@ fn launch_bench<'a>(bench_client: &Client, url: URL<'a>) -> u32 {
 
 /// Test each URL to download the required file
 /// This function returns a list of URLs, which is sorted by median measures (the first URL is the fastest server)
-pub fn bench_mirrors<'a>(mirrors: MirrorsList<'a>, filename: &str) -> MirrorsList<'a> {
+pub fn bench_mirrors<'a>(
+    mirrors: MirrorsList<'a>,
+    filename: &str,
+    ssl_support: bool,
+) -> MirrorsList<'a> {
     // Hyper client to make benchmarks
-    let mut bench_client = get_hyper_client();
+    let current_config = Config { enable_ssl: ssl_support };
+    let mut bench_client = current_config.get_hyper_client();
     bench_client.set_read_timeout(Some(Duration::from_secs(3)));
     // Get mirrors list
     // let mut b_mirrors: Vec<(&'a str, u32)> = Vec::with_capacity(PING_TIMES);

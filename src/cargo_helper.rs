@@ -1,7 +1,7 @@
 use authorization::{AuthorizationHeaderFactory, AuthorizationType, GetAuthorizationType};
 use Bytes;
 use bench::bench_mirrors;
-use client::{GetResponse, get_hyper_client};
+use client::{Config, GetResponse};
 use contentlength::GetContentLength;
 use http_version::ValidateHttpVersion;
 use hyper::header::{ByteRangeSpec, Headers, Range};
@@ -42,7 +42,7 @@ pub struct CargoInfo<'a> {
     pub content_length: Bytes,
 }
 
-fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
+fn get_mirror_info<'a>(filename: &str, server_url: &'a str, ssl_support: bool) -> MirrorInfo<'a> {
 
     let mut mirror_info = MirrorInfo::default();
     mirror_info.url = server_url;
@@ -54,7 +54,8 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
         return mirror_info;
     }
     let file_url = file_url.to_str().unwrap();
-    let hyper_client = get_hyper_client();
+    let current_config = Config { enable_ssl: ssl_support };
+    let hyper_client = current_config.get_hyper_client();
     // hyper_client.set_read_timeout(Some(Duration::from_secs(3)));
     let client_response = hyper_client.get_head_response(file_url).unwrap();
 
@@ -141,7 +142,10 @@ fn get_mirror_info<'a>(filename: &str, server_url: &'a str) -> MirrorInfo<'a> {
 pub fn get_cargo_info<'a>(
     filename: &str,
     server_urls: MirrorsList<'a>,
+    ssl_support: bool,
 ) -> Result<CargoInfo<'a>, String> {
+
+    let current_config = Config { enable_ssl: ssl_support };
 
     let best_mirrors = match server_urls.len() {
         0 | 1 => server_urls,
@@ -151,7 +155,9 @@ pub fn get_cargo_info<'a>(
             let mut available_mirrors: MirrorsList<'a> = Vec::with_capacity(server_urls.len());
             let candidates: Vec<MirrorInfo<'a>> = server_urls
                 .par_iter()
-                .map(|server_url| get_mirror_info(filename, server_url))
+                .map(|server_url| {
+                    get_mirror_info(filename, server_url, ssl_support)
+                })
                 .collect();
 
             // If any 'true' mirrors...
@@ -174,7 +180,7 @@ pub fn get_cargo_info<'a>(
             info!("Ranking mirrors...");
 
             // Get best mirrors from the list of available mirrors
-            bench_mirrors(available_mirrors, filename)
+            bench_mirrors(available_mirrors, filename, ssl_support)
         }
     };
 
@@ -182,7 +188,7 @@ pub fn get_cargo_info<'a>(
     // Get the first mirror to get global informations
     let fst_mirror = path_fst_mirror.to_str().unwrap();
 
-    let hyper_client = get_hyper_client();
+    let hyper_client = current_config.get_hyper_client();
     let client_response = hyper_client.get_head_response(fst_mirror).unwrap();
 
     let auth_type = client_response.headers.get_authorization_type();

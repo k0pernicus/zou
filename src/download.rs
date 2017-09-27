@@ -1,6 +1,6 @@
 use cargo_helper::CargoInfo;
 use Bytes;
-use client::{GetResponse, get_hyper_client};
+use client::{Config, GetResponse};
 use hyper::client::Client;
 use hyper::error::Error;
 use hyper::header::{ByteRangeSpec, Headers, Range};
@@ -140,6 +140,7 @@ pub fn download_chunks<'a>(
     mut out_file: OutputFileWriter,
     nb_chunks: u64,
     filename: &str,
+    ssl_support: bool,
 ) -> bool {
     let (content_length, auth_header_factory) = (cargo_info.content_length, cargo_info.auth_header);
     let global_chunk_length: u64 = (content_length / nb_chunks) + 1;
@@ -157,7 +158,8 @@ pub fn download_chunks<'a>(
         let url_clone = String::from(path_url.to_str().unwrap());
         let (mut http_header, RangeBytes(chunk_offset, chunk_length)) =
             get_header_from_index(chunk_index, content_length, global_chunk_length).unwrap();
-        let hyper_client = get_hyper_client();
+        let current_config = Config { enable_ssl: ssl_support };
+        let hyper_client = current_config.get_hyper_client();
         if let Some(auth_header_factory) = auth_header_factory.clone() {
             http_header.set(auth_header_factory.build_header());
         }
