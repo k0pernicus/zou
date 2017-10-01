@@ -14,6 +14,7 @@ use libzou::util::prompt_user;
 use libzou::write::OutputFileWriter;
 #[macro_use]
 mod logs;
+use std::error::Error;
 use std::fs::{File, remove_file};
 use std::path::Path;
 use std::process::exit;
@@ -123,7 +124,12 @@ fn main() {
     // Get remote server informations in order to perform the best download strategy as possible
     let remote_server_informations = match get_remote_server_informations(url_str, ssl_support) {
         Ok(informations) => informations,
-        Err(err) => panic!(err),
+        Err(err) => {
+            error!(
+                &format!("Getting remote server informations: {}", err.description())
+            );
+            exit(1);
+        },
     };
 
     info!(
