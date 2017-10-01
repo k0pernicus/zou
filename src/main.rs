@@ -6,9 +6,9 @@ extern crate libzou;
 extern crate num_cpus;
 
 use clap::{App, Arg};
-use libzou::cargo_helper::get_cargo_info;
+use libzou::cargo_helper::get_remote_server_informations;
 use libzou::download::download_chunks;
-use libzou::filesize::format_filesize;
+use libzou::filesize::StringFileType;
 use libzou::protocol::{get_protocol, Protocol};
 use libzou::util::prompt_user;
 use libzou::write::OutputFileWriter;
@@ -62,6 +62,7 @@ fn main() {
 
     // Get the URL as a Path structure
     let url = Path::new(argparse.value_of("url").unwrap());
+    let url_str = url.to_str().unwrap();
 
     // Get the path filename
     let filename = url.file_name().unwrap().to_str().unwrap();
@@ -120,23 +121,26 @@ fn main() {
         None => epanic!("Unknown protocol!"),
     };
 
-    let cargo_info =
-        get_cargo_info(url.to_str().unwrap(), ssl_support).expect("fail to parse url");
-    info!(&format!(
-        "Remote content length: {}",
-        format_filesize(cargo_info.file.content_length)
-    ));
+    // Get remote server informations in order to perform the best download strategy as possible
+    let remote_server_informations = match get_remote_server_informations(url_str, ssl_support) {
+        Ok(informations) => informations,
+        Err(err) => panic!(err),
+    };
+
+    info!(
+        &format!("Remote content length: {}", StringFileType::from(remote_server_informations.file.content_length))
+    );
 
     let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
 
-    local_file.set_len(cargo_info.file.content_length).expect(
+    local_file.set_len(remote_server_informations.file.content_length).expect(
         "Cannot extend local file !",
     );
     let out_file = OutputFileWriter::new(local_file);
 
     // If the server does not accept PartialContent status, download the remote file
     // using only one thread
-    if !cargo_info.accept_partialcontent {
+    if !remote_server_informations.accept_partialcontent {
         warning!(
             "The remote server does not accept PartialContent status! \
                              Downloading the remote file using one thread."
@@ -144,7 +148,7 @@ fn main() {
         threads = 1;
     }
 
-    if download_chunks(cargo_info, out_file, threads as u64, filename, ssl_support) {
+    if download_chunks(remote_server_informations, out_file, threads as u64, filename, ssl_support) {
         ok!(&format!(
             "Your download is available in {}",
             local_path.to_str().unwrap()
@@ -153,7 +157,7 @@ fn main() {
         // If the file is not ok, delete it from the file system
         error!("Download failed! An error occured - erasing file... ");
         if remove_file(local_path).is_err() {
-            error!("Cannot remove downloaded file!");
+            error!("Cannot delete downloaded file!");
         }
     }
 
