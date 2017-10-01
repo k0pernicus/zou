@@ -8,7 +8,7 @@ extern crate num_cpus;
 use clap::{App, Arg};
 use libzou::cargo_helper::get_remote_server_informations;
 use libzou::download::download_chunks;
-use libzou::filesize::StringFileType;
+use libzou::filesize::StringFileSize;
 use libzou::protocol::{get_protocol, Protocol};
 use libzou::util::prompt_user;
 use libzou::write::OutputFileWriter;
@@ -128,7 +128,7 @@ fn main() {
     };
 
     info!(
-        &format!("Remote content length: {}", StringFileType::from(remote_server_informations.file.content_length))
+        &format!("Remote content length: {}", StringFileSize::from(remote_server_informations.file.content_length))
     );
 
     let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
