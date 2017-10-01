@@ -25,11 +25,6 @@ fn main() {
     let argparse = App::new("Zou")
         .about("Zou, a simple and fast download accelerator, written in Rust.")
         .version(crate_version!())
-        .arg(Arg::with_name("file")
-                 .long("file")
-                 .short("f")
-                 .takes_value(true)
-                 .help("The local file to save the remote content file"))
         .arg(Arg::with_name("threads")
                  .long("threads")
                  .short("t")
@@ -48,6 +43,11 @@ fn main() {
                  .multiple(true)
                  .takes_value(true)
                  .help("Download using a list of mirrors - the list of mirrors is used WITH the original URL"))
+        .arg(Arg::with_name("output")
+                .long("output")
+                .short("o")
+                .takes_value(true)
+                .help("Specify the local output"))
         .arg(Arg::with_name("ssl_support")
                 .long("ssl_support")
                 .short("s")
@@ -85,7 +85,7 @@ fn main() {
         info!(&format!("threads: {}", threads));
     }
 
-    let local_path = Path::new(&filename);
+    let local_path = Path::new(argparse.value_of("output").unwrap_or(&filename));
 
     if local_path.exists() {
         if local_path.is_dir() {
