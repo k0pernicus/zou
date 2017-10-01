@@ -93,8 +93,8 @@ impl Display for AuthorizationHeaderFactory {
                 basic_auth.fmt_scheme(f)
             }
             _ => {
-                if let Some(ref passwd) = self.password {
-                    write!(f, "{}:{}", self.username, passwd)
+                if let Some(ref password) = self.password {
+                    write!(f, "{}:{}", self.username, password)
                 } else {
                     write!(f, "{}", self.username)
                 }
