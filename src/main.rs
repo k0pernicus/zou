@@ -63,19 +63,6 @@ fn main() {
     // Get the URL as a Path structure
     let url = Path::new(argparse.value_of("url").unwrap());
 
-    // Set the mirrors vectors
-    let mut servers_urls: Vec<&str> = match url.parent() {
-        Some(parent) => vec![parent.to_str().unwrap()],
-        None => vec![],
-    };
-    // Set given mirrors
-    if argparse.is_present("mirrors") {
-        let mirrors_vec: Vec<&str> = argparse.values_of("mirrors").unwrap().collect();
-        for mirror in mirrors_vec {
-            servers_urls.push(mirror);
-        }
-    }
-
     // Get the path filename
     let filename = url.file_name().unwrap().to_str().unwrap();
 
@@ -134,7 +121,7 @@ fn main() {
     };
 
     let cargo_info =
-        get_cargo_info(filename, servers_urls, ssl_support).expect("fail to parse url");
+        get_cargo_info(url.to_str().unwrap(), ssl_support).expect("fail to parse url");
     info!(&format!(
         "Remote content length: {}",
         format_filesize(cargo_info.content_length)

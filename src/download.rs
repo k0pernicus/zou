@@ -145,7 +145,6 @@ pub fn download_chunks<'a>(
     let (content_length, auth_header_factory) = (cargo_info.content_length, cargo_info.auth_header);
     let global_chunk_length: u64 = (content_length / nb_chunks) + 1;
 
-    let mirrors: MirrorsList<'a> = cargo_info.best_mirrors;
     let mut jobs = vec![];
 
     let mut mpb = MultiBar::new();
@@ -153,7 +152,7 @@ pub fn download_chunks<'a>(
 
     for chunk_index in 0..nb_chunks {
 
-        let server_url = mirrors[chunk_index as usize % mirrors.len()];
+        let server_url = cargo_info.url.clone();
         let path_url = Path::new(server_url).join(filename);
         let url_clone = String::from(path_url.to_str().unwrap());
         let (mut http_header, RangeBytes(chunk_offset, chunk_length)) =
