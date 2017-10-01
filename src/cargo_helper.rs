@@ -51,17 +51,17 @@ impl error::Error for RemoteServerError {
 type RemoteServerInformationsResult<'a> = Result<RemoteServerInformations<'a>, RemoteServerError>;
 
 /// Get Rust structure that contains network benchmarks
-pub fn get_cargo_info<'a>(
+pub fn get_remote_server_informations<'a>(
     url: &'a str,
     ssl_support: bool,
 ) -> RemoteServerInformationsResult<'a> {
-
+    // Get the Hyper configuration
     let current_config = Config { enable_ssl: ssl_support };
-
     let hyper_client = current_config.get_hyper_client();
+    // Get the Hyper client
     let client_response = hyper_client.get_head_response(url).unwrap();
-
     let auth_type = client_response.headers.get_authorization_type();
+    // Perform Authorization task
     let auth_header_factory = match auth_type {
         Some(a_type) => {
             match a_type {
@@ -106,8 +106,7 @@ pub fn get_cargo_info<'a>(
                 "Trying to send an HTTP request, to get the remote \
                                  content length..."
             );
-
-            // Trying to force the server to send to us the remote content length
+            // Force the server to send to us the remote content length
             let mut custom_http_header = Headers::new();
             // HTTP header to get all the remote content - if the response is OK, get the
             // ContentLength information sent back from the server
@@ -127,7 +126,6 @@ pub fn get_cargo_info<'a>(
     };
 
     Ok(RemoteServerInformations {
-        // TODO: TO REFACTOR --- Be careful if there is only one server...
         accept_partialcontent: true,
         auth_header: auth_header_factory,
         file: RemoteFileInformations {
