@@ -21,10 +21,13 @@ pub struct RemoteFileInformations {
     pub content_length: Bytes,
 }
 
-/// Some enumeration to display easily errors
+/// Some enumeration to display accurate errors
 #[derive(Debug)]
 pub enum RemoteServerError {
+    /// Error throwed when too much connection has been connected, in order to
+    /// create connection with the server
     TooMuchAttempting(usize),
+    /// Error throwed when an Authorization type can't be deal with Zou
     UnknownAuthorizationType(AuthorizationType),
 }
 
