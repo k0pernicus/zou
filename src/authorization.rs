@@ -2,7 +2,7 @@ use hyper::header::{Authorization, Basic, Headers, Scheme};
 use std::fmt::{Display, Formatter, Result};
 
 /// Enum for the different types of authorization required by a remote document.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum AuthorizationType {
     Basic,
     Digest,

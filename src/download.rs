@@ -1,10 +1,9 @@
-use cargo_helper::CargoInfo;
+use cargo_helper::RemoteServerInformations;
 use Bytes;
 use client::{Config, GetResponse};
 use hyper::client::Client;
 use hyper::error::Error;
 use hyper::header::{ByteRangeSpec, Headers, Range};
-use MirrorsList;
 use pbr::{MultiBar, Pipe, ProgressBar, Units};
 use response::CheckResponseStatus;
 use std::cmp::min;
@@ -136,13 +135,13 @@ fn download_a_chunk(
 /// * the URL of the remote content server,
 /// * a custom authorization to access and download the remote content.
 pub fn download_chunks<'a>(
-    cargo_info: CargoInfo<'a>,
+    cargo_info: RemoteServerInformations<'a>,
     mut out_file: OutputFileWriter,
     nb_chunks: u64,
     filename: &str,
     ssl_support: bool,
 ) -> bool {
-    let (content_length, auth_header_factory) = (cargo_info.content_length, cargo_info.auth_header);
+    let (content_length, auth_header_factory) = (cargo_info.file.content_length, cargo_info.auth_header);
     let global_chunk_length: u64 = (content_length / nb_chunks) + 1;
 
     let mut jobs = vec![];

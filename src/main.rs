@@ -124,12 +124,12 @@ fn main() {
         get_cargo_info(url.to_str().unwrap(), ssl_support).expect("fail to parse url");
     info!(&format!(
         "Remote content length: {}",
-        format_filesize(cargo_info.content_length)
+        format_filesize(cargo_info.file.content_length)
     ));
 
     let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
 
-    local_file.set_len(cargo_info.content_length).expect(
+    local_file.set_len(cargo_info.file.content_length).expect(
         "Cannot extend local file !",
     );
     let out_file = OutputFileWriter::new(local_file);

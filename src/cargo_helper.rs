@@ -1,29 +1,60 @@
 use authorization::{AuthorizationHeaderFactory, AuthorizationType, GetAuthorizationType};
 use Bytes;
-use bench::bench_mirrors;
 use client::{Config, GetResponse};
 use contentlength::GetContentLength;
-use http_version::ValidateHttpVersion;
 use hyper::header::{ByteRangeSpec, Headers, Range};
-use MirrorsList;
-use response::CheckResponseStatus;
+use std::error;
+use std::fmt;
 use std::result::Result;
-use std::path::Path;
-use rayon::prelude::*;
 use util::prompt_user;
 
-pub struct CargoInfo<'a> {
+/// Contains informations about the remote server
+pub struct RemoteServerInformations<'a> {
     pub accept_partialcontent: bool,
     pub auth_header: Option<AuthorizationHeaderFactory>,
-    pub content_length: Bytes,
+    pub file: RemoteFileInformations,
     pub url: &'a str,
 }
+
+/// Contains informations about the remote file
+pub struct RemoteFileInformations {
+    pub content_length: Bytes,
+}
+
+/// Some enumeration to display easily errors
+#[derive(Debug)]
+pub enum RemoteServerError {
+    TooMuchAttempting(usize),
+    UnknownAuthorizationType(AuthorizationType),
+}
+
+impl fmt::Display for RemoteServerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            RemoteServerError::TooMuchAttempting(ref attempts) => write!(f, "{} attempts failed", attempts),
+            RemoteServerError::UnknownAuthorizationType(ref unknown_type) => write!(f, "{} is not supporting by Zou.\
+                                                                                        You can create a new issue to report this problem \
+                                                                                        at https://github.com/k0pernicus/zou/issues/new", unknown_type) 
+        }
+    }
+}
+
+impl error::Error for RemoteServerError {
+    fn description(&self) -> &str {
+        match *self {
+            RemoteServerError::TooMuchAttempting(_) => "Many attempts failed",
+            RemoteServerError::UnknownAuthorizationType(_) => "Authorization type not supported"
+        }
+    }
+}
+
+type RemoteServerInformationsResult<'a> = Result<RemoteServerInformations<'a>, RemoteServerError>;
 
 /// Get Rust structure that contains network benchmarks
 pub fn get_cargo_info<'a>(
     url: &'a str,
     ssl_support: bool,
-) -> Result<CargoInfo<'a>, String> {
+) -> RemoteServerInformationsResult<'a> {
 
     let current_config = Config { enable_ssl: ssl_support };
 
@@ -46,14 +77,7 @@ pub fn get_cargo_info<'a>(
                     ))
                 }
                 _ => {
-                    panic!(
-                        "The remote content is protected by {} \
-                                                 Authorization, which is not supported!\nYou \
-                                                 can create a new issue to report this problem \
-                                                 in https://github.\
-                                                 com/k0pernicus/zou/issues/new",
-                        a_type
-                    );
+                    return Err(RemoteServerError::UnknownAuthorizationType(a_type));
                 }
             }
         }
@@ -96,18 +120,19 @@ pub fn get_cargo_info<'a>(
             match client_response.headers.get_content_length() {
                 Some(remote_content_length) => remote_content_length,
                 None => {
-                    error!("Second attempt has failed.");
-                    0
+                    return Err(RemoteServerError::TooMuchAttempting(2));
                 }
             }
         }
     };
 
-    Ok(CargoInfo {
+    Ok(RemoteServerInformations {
         // TODO: TO REFACTOR --- Be careful if there is only one server...
         accept_partialcontent: true,
         auth_header: auth_header_factory,
-        content_length: remote_content_length,
+        file: RemoteFileInformations {
+            content_length: remote_content_length,
+        },    
         url: url,
     })
 }
