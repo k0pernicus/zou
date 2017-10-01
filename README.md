@@ -35,14 +35,15 @@ USAGE:
     zou [FLAGS] [OPTIONS] <url>
 
 FLAGS:
-    -d, --debug      Active the debug mode
-        --force      Assume Yes to all queries and do not prompt
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -d, --debug          Active the debug mode
+        --force          Assume Yes to all queries and do not prompt
+    -h, --help           Prints help information
+    -s, --ssl_support    Switch to an SSL client
+    -V, --version        Prints version information
 
 OPTIONS:
-    -f, --file <file>          The local file to save the remote content file
-    -t, --threads <threads>    Threads which can use to download
+    -o, --output <output>         Specify the local output
+    -t, --threads <threads>       Threads which can use to download
 
 ARGS:
     <url>
