@@ -80,9 +80,8 @@ fn main() {
         .unwrap_or(num_cpus::get_physical());
 
     if argparse.is_present("debug") {
-        info!(&format!("version: {}", crate_version!()));
-        info!(&format!("file: {}", filename));
-        info!(&format!("threads: {}", threads));
+        info!(&format!("zou V{}", crate_version!()));
+        info!(&format!("downloading {}, using {} threads", filename, threads));
     }
 
     let local_path = Path::new(argparse.value_of("output").unwrap_or(&filename));
