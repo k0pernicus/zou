@@ -141,7 +141,8 @@ pub fn download_chunks<'a>(
     filename: &str,
     ssl_support: bool,
 ) -> bool {
-    let (content_length, auth_header_factory) = (cargo_info.file.content_length, cargo_info.auth_header);
+    let (content_length, auth_header_factory) =
+        (cargo_info.file.content_length, cargo_info.auth_header);
     let global_chunk_length: u64 = (content_length / nb_chunks) + 1;
 
     let mut jobs = vec![];
