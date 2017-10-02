@@ -106,13 +106,13 @@ fn download_a_chunk(
     let mut last_progress_bytes = 0;
     let mut last_progress_time = Instant::now() - progress_update_interval;
 
+
     while let Ok(n) = body.read(&mut bytes_buffer) {
         if n == 0 {
             return Ok(sum_bytes);
         }
 
         chunk_writer.write(sum_bytes, &bytes_buffer[0..n]);
-
         sum_bytes += n as u64;
 
         // Update the CLI
@@ -152,8 +152,7 @@ pub fn download_chunks<'a>(
     for chunk_index in 0..nb_chunks {
 
         let server_url = cargo_info.url.clone();
-        let path_url = Path::new(server_url).join(filename);
-        let url_clone = String::from(path_url.to_str().unwrap());
+        let url_clone = String::from(server_url);
         let (mut http_header, RangeBytes(chunk_offset, chunk_length)) =
             get_header_from_index(chunk_index, content_length, global_chunk_length).unwrap();
         let current_config = Config { enable_ssl: ssl_support };

@@ -52,7 +52,7 @@ impl Display for AuthorizationType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AuthorizationHeaderFactory {
     authorization_type: AuthorizationType,
     username: String,

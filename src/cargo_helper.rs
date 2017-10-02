@@ -9,6 +9,7 @@ use std::result::Result;
 use util::prompt_user;
 
 /// Contains informations about the remote server
+#[derive(Debug)]
 pub struct RemoteServerInformations<'a> {
     pub accept_partialcontent: bool,
     pub auth_header: Option<AuthorizationHeaderFactory>,
@@ -17,6 +18,7 @@ pub struct RemoteServerInformations<'a> {
 }
 
 /// Contains informations about the remote file
+#[derive(Debug)]
 pub struct RemoteFileInformations {
     pub content_length: Bytes,
 }

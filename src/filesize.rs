@@ -32,7 +32,9 @@ pub struct StringFileSize(String);
 
 impl fmt::Display for StringFileSize {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        // Get a reference to the content of the StringFileSize struct
+        let &StringFileSize(ref value) = self; 
+        write!(f, "{}", value)
     }
 }
 
