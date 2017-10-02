@@ -82,7 +82,11 @@ fn main() {
 
     if argparse.is_present("debug") {
         info!(&format!("zou V{}", crate_version!()));
-        info!(&format!("downloading {}, using {} threads", filename, threads));
+        info!(&format!(
+            "downloading {}, using {} threads",
+            filename,
+            threads
+        ));
     }
 
     let local_path = Path::new(argparse.value_of("output").unwrap_or(&filename));
@@ -112,12 +116,14 @@ fn main() {
 
     // Get automaticaly the protocol from the given URL
     let ssl_support = match get_protocol(url.to_str().unwrap()) {
-        Some(protocol) => match protocol {
-            // If the protocol is HTTP, return the user decision for the HTTPS client
-            Protocol::HTTP => argparse.is_present("ssl_support"),
-            // Force to use HTTPS client
-            Protocol::HTTPS => true,
-        },
+        Some(protocol) => {
+            match protocol {
+                // If the protocol is HTTP, return the user decision for the HTTPS client
+                Protocol::HTTP => argparse.is_present("ssl_support"),
+                // Force to use HTTPS client
+                Protocol::HTTPS => true,
+            }
+        }
         None => epanic!("Unknown protocol!"),
     };
 
@@ -125,22 +131,26 @@ fn main() {
     let remote_server_informations = match get_remote_server_informations(url_str, ssl_support) {
         Ok(informations) => informations,
         Err(err) => {
-            error!(
-                &format!("Getting remote server informations: {}", err.description())
-            );
+            error!(&format!(
+                "Getting remote server informations: {}",
+                err.description()
+            ));
             exit(1);
-        },
+        }
     };
 
-    info!(
-        &format!("Remote content length: {}", StringFileSize::from(remote_server_informations.file.content_length))
-    );
+    info!(&format!(
+        "Remote content length: {}",
+        StringFileSize::from(
+            remote_server_informations.file.content_length,
+        )
+    ));
 
     let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
 
-    local_file.set_len(remote_server_informations.file.content_length).expect(
-        "Cannot extend local file !",
-    );
+    local_file
+        .set_len(remote_server_informations.file.content_length)
+        .expect("Cannot extend local file !");
     let out_file = OutputFileWriter::new(local_file);
 
     // If the server does not accept PartialContent status, download the remote file
@@ -153,7 +163,13 @@ fn main() {
         threads = 1;
     }
 
-    if download_chunks(remote_server_informations, out_file, threads as u64, filename, ssl_support) {
+    if download_chunks(
+        remote_server_informations,
+        out_file,
+        threads as u64,
+        ssl_support,
+    )
+    {
         ok!(&format!(
             "Your download is available in {}",
             local_path.to_str().unwrap()

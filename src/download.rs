@@ -8,7 +8,6 @@ use pbr::{MultiBar, Pipe, ProgressBar, Units};
 use response::CheckResponseStatus;
 use std::cmp::min;
 use std::io::Read;
-use std::path::Path;
 use std::thread;
 use std::time::{Instant, Duration};
 use write::{OutputFileWriter, OutputChunkWriter};
@@ -138,7 +137,6 @@ pub fn download_chunks<'a>(
     cargo_info: RemoteServerInformations<'a>,
     mut out_file: OutputFileWriter,
     nb_chunks: u64,
-    filename: &str,
     ssl_support: bool,
 ) -> bool {
     let (content_length, auth_header_factory) =
