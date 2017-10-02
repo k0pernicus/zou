@@ -1,11 +1,13 @@
 use hyper::Url;
 
+/// Supported protocols
 #[derive(Debug)]
 pub enum Protocol {
     HTTP,
     HTTPS,
 }
 
+/// Returns an Option type, that contains a Protocol enum
 pub fn get_protocol(url: &str) -> Option<Protocol> {
     match Url::parse(url) {
         Ok(url) => match url.scheme() {
