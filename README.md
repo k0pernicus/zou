@@ -7,7 +7,8 @@ Snatch is a fast and interruptable download accelerator, written in Rust, from [
 ## Current features
 
 * **Simple**: a command line tool to manage easily your downloads ;
-* **Fast**: multithreading support.
+* **Fast**: multithreading support ;
+* **Interruptable**: _work in progress_.
 
 **NOTE**: _Zou_ is on _alpha_ version.
 This version runs well on remote contents with a length known **before** the download (with the `content-length` header from the server response).
