@@ -129,7 +129,12 @@ fn main() {
 
     // Get remote server informations in order to perform the best download strategy as possible
     let remote_server_informations = match get_remote_server_informations(url_str, ssl_support) {
-        Ok(informations) => informations,
+        Ok(mut informations) => {
+            // Check if the user asked for monothreading download
+            informations.accept_partialcontent = !(threads == 1);
+            // Return the data structure
+            informations
+        }
         Err(err) => {
             error!(&format!(
                 "Getting remote server informations: {}",
