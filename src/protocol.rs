@@ -16,7 +16,7 @@ pub fn get_protocol(url: &str) -> Option<Protocol> {
             _ => None,
         },
         Err(error) => {
-            warning!(&format!("Canno't extract the protocol from the URL: {}", error));
+            warning!(&format!("Error extracting the protocol: {}", error));
             None
         }
     }
