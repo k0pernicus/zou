@@ -9,6 +9,6 @@ RUN apt-get update &&\
 COPY . .
 
 # Create an empty directory to get downloads, and install zou
-RUN mkdir downloads && cargo install
+RUN cargo install
 
-ENTRYPOINT ["/root/.cargo/bin/zou", "--output", "/rust/zou/downloads"]
+ENTRYPOINT ["/root/.cargo/bin/zou"]
