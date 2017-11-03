@@ -18,6 +18,7 @@ pub mod download;
 pub mod filesize;
 pub mod http_version;
 pub mod protocol;
+pub mod read;
 pub mod response;
 pub mod util;
 pub mod write;
@@ -28,6 +29,9 @@ pub type Bytes = u64;
 type Chunk = Vec<u8>;
 /// Represents a list of chunks
 pub type Chunks = Vec<Chunk>;
+/// Represents a range between two Bytes types
+#[derive(Debug, PartialEq)]
+struct RangeBytes(Bytes, Bytes);
 /// Represents a shared mutable reference of chunks
 pub type SChunks = Arc<Mutex<Chunks>>;
 /// Represents an URL

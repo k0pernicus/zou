@@ -49,10 +49,6 @@ fn main() {
                 .short("o")
                 .takes_value(true)
                 .help("Specify the local output"))
-        .arg(Arg::with_name("resume")
-                .long("resume")
-                .short("r")
-                .help("Resume a given download - if the download has not been found, it will be download since the beginning"))
         .arg(Arg::with_name("ssl_support")
                 .long("ssl_support")
                 .short("s")
@@ -95,7 +91,24 @@ fn main() {
 
     let local_path = Path::new(argparse.value_of("output").unwrap_or(&filename));
 
-    if local_path.exists() {
+    // Check for an existing file if the 'resume' option has been set
+    if argparse.is_present("resume") {
+        info!("Asking to resume a download...");
+        if ! local_path.exists() {
+            warning!("The download does not exists! It will start from 0.");
+            let user_input = prompt_user(
+                "Do you want to start the download from 0? [y/N]"
+            );
+            if (user_input == "n" || user_input == "N") {
+                exit(0);
+            }
+        } else {
+            
+        }
+    }
+
+    // Override existing file if the 'resume' option has not been set
+    if !argparse.is_present("resume") && local_path.exists() {
         if local_path.is_dir() {
             epanic!(
                 "The local path to store the remote content is already exists, \
@@ -172,12 +185,7 @@ fn main() {
         threads = 1;
     }
 
-    if download_chunks(
-        remote_server_informations,
-        out_file,
-        threads as u64,
-        ssl_support,
-    )
+    if download_chunks(remote_server_informations, out_file, threads as u64, ssl_support)
     {
         ok!(&format!(
             "Your download is available in {}",
