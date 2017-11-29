@@ -10,7 +10,7 @@ use URL;
 /// Number of times to ping the remote server
 const PING_TIMES: usize = 5;
 /// Number of bytes to download from the remote server
-const LEN_BENCH_CHUNK: u64 = 64;
+const LEN_BENCH_CHUNK: u64 = 1024;
 
 /// Launch a benchmark on a single URL
 /// This benchmark tests the network for this URL, downloading five times a 64 bits packet
