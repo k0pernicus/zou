@@ -1,4 +1,7 @@
 extern crate ansi_term;
+#[macro_use]
+extern crate chan;
+extern crate chan_signal;
 extern crate hyper;
 extern crate hyper_openssl;
 extern crate pbr;
