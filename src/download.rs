@@ -1,5 +1,5 @@
+use {Bytes, RangeBytes};
 use cargo_helper::RemoteServerInformations;
-use Bytes;
 use client::{Config, GetResponse};
 use hyper::client::Client;
 use hyper::error::Error;
@@ -19,10 +19,6 @@ const DOWNLOAD_BUFFER_BYTES: usize = 1024 * 64;
 /// Constant to represent the refresh interval (in milliseconds)
 /// for the CLI
 const PROGRESS_UPDATE_INTERVAL_MILLIS: u64 = 500;
-
-/// Represents a range between two Bytes types
-#[derive(Debug, PartialEq)]
-struct RangeBytes(Bytes, Bytes);
 
 macro_rules! initbar {
     ($mp:ident,$mpb:ident,$length:expr,$index:expr,$server:expr) => {
