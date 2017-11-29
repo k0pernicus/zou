@@ -28,13 +28,6 @@ fn main() {
             "Zou, a simple and fast download accelerator, written in Rust.",
         )
         .version(crate_version!())
-        .arg(
-            Arg::with_name("threads")
-                .long("threads")
-                .short("t")
-                .takes_value(true)
-                .help("Threads which can use to download"),
-        )
         .arg(Arg::with_name("debug").long("debug").short("d").help(
             "Active the debug mode",
         ))
@@ -53,6 +46,13 @@ fn main() {
                 .long("ssl_support")
                 .short("s")
                 .help("Switch to an SSL client"),
+        )
+        .arg(
+            Arg::with_name("threads")
+                .long("threads")
+                .short("t")
+                .takes_value(true)
+                .help("Threads which can use to download"),
         )
         .arg(Arg::with_name("url")
             .index(1)
