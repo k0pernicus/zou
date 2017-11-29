@@ -10,11 +10,11 @@ use util::prompt_user;
 
 /// Contains informations about the remote server
 #[derive(Debug)]
-pub struct RemoteServerInformations<'a> {
+pub struct RemoteServerInformations {
     pub accept_partialcontent: bool,
     pub auth_header: Option<AuthorizationHeaderFactory>,
     pub file: RemoteFileInformations,
-    pub url: &'a str,
+    pub url: String,
 }
 
 /// Contains informations about the remote file
@@ -61,13 +61,13 @@ impl error::Error for RemoteServerError {
     }
 }
 
-type RemoteServerInformationsResult<'a> = Result<RemoteServerInformations<'a>, RemoteServerError>;
+type RemoteServerInformationsResult = Result<RemoteServerInformations, RemoteServerError>;
 
 /// Get Rust structure that contains network benchmarks
-pub fn get_remote_server_informations<'a>(
-    url: &'a str,
+pub fn get_remote_server_informations(
+    url: &str,
     ssl_support: bool,
-) -> RemoteServerInformationsResult<'a> {
+) -> RemoteServerInformationsResult {
     // Get the Hyper configuration
     let current_config = Config { enable_ssl: ssl_support };
     let hyper_client = current_config.get_hyper_client();
@@ -142,6 +142,6 @@ pub fn get_remote_server_informations<'a>(
         accept_partialcontent: true,
         auth_header: auth_header_factory,
         file: RemoteFileInformations { content_length: remote_content_length },
-        url: url,
+        url: String::from(url),
     })
 }
