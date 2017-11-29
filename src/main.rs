@@ -19,6 +19,8 @@ use std::fs::{File, remove_file};
 use std::path::Path;
 use std::process::exit;
 
+const RESUME_EXTENSION: &'static str = "resume";
+
 fn main() {
 
     // Parse arguments
@@ -31,6 +33,9 @@ fn main() {
         .arg(Arg::with_name("debug").long("debug").short("d").help(
             "Active the debug mode",
         ))
+        .arg(Arg::with_name("delete").long("delete").short("D").help(
+            "Delete the downloaded parts if an error occurs during the download",
+        ))
         .arg(Arg::with_name("force").long("force").help(
             "Assume Yes to all queries and do not prompt",
         ))
@@ -41,6 +46,9 @@ fn main() {
                 .takes_value(true)
                 .help("Specify the local output"),
         )
+        .arg(Arg::with_name("resume").long("resume").short("r").help(
+            "Resume a download",
+        ))
         .arg(
             Arg::with_name("ssl_support")
                 .long("ssl_support")
@@ -59,8 +67,6 @@ fn main() {
             //.multiple(true)
             .required(true))
         .get_matches();
-
-    // Get informations from arguments
 
     // Get the URL as a Path structure
     let url = Path::new(argparse.value_of("url").unwrap());
@@ -90,9 +96,13 @@ fn main() {
         ));
     }
 
-    let local_path = Path::new(argparse.value_of("output").unwrap_or(&filename));
+    let local_path_str = argparse.value_of("output").unwrap_or(&filename);
+    let local_path_resume_str = [local_path_str, RESUME_EXTENSION].join(".");
 
-    if local_path.exists() {
+    let local_path = Path::new(local_path_str);
+    let local_path_resume = Path::new(&local_path_resume_str);
+
+    if local_path.exists() && !argparse.is_present("resume") {
         if local_path.is_dir() {
             epanic!(
                 "The local path to store the remote content is already exists, \
@@ -152,11 +162,25 @@ fn main() {
         )
     ));
 
-    let local_file = File::create(local_path).expect("[ERROR] Cannot create a file !");
+    // If resume task, open the file - otherwise, create one
+    let (local_file, local_resume_file) = match argparse.is_present("resume") {
+        true => (
+            File::open(local_path).expect("[ERROR] Cannot open the output file !"),
+            File::open(local_path_resume).expect("[ERROR] Cannot open the resume file !"),
+        ),
+        false => (
+            File::create(local_path).expect("[ERROR] Cannot create the output file !"),
+            File::create(local_path_resume).expect("[ERROR] Cannot create the resume file !"),
+        ),
+    };
 
-    local_file
-        .set_len(remote_server_informations.file.content_length)
-        .expect("Cannot extend local file !");
+    // Set the length of the output file if it has not been created yet
+    if !argparse.is_present("resume") {
+        local_file
+            .set_len(remote_server_informations.file.content_length)
+            .expect("Cannot extend local file !");
+    }
+
     let out_file = OutputFileWriter::new(local_file);
 
     // If the server does not accept PartialContent status, download the remote file
@@ -176,15 +200,27 @@ fn main() {
         ssl_support,
     )
     {
+        match remove_file(local_path_resume) {
+            Ok(_) => (),
+            Err(_) => error!("Cannot remove the resume file in the current directory."),
+        }
         ok!(&format!(
             "Your download is available in {}",
             local_path.to_str().unwrap()
         ));
     } else {
         // If the file is not ok, delete it from the file system
-        error!("Download failed! An error occured - erasing file... ");
-        if remove_file(local_path).is_err() {
-            error!("Cannot delete downloaded file!");
+        error!("Download failed!");
+        if argparse.is_present("delete") {
+            error!("Removing the downloaded parts, and the resume file...");
+            if remove_file(local_path).is_err() {
+                error!("Cannot remove downloaded parts!");
+            }
+            if remove_file(local_path_resume).is_err() {
+                error!("Cannot remove the resume file!");
+            }
+        } else {
+            info!("You can resume the download using `--resume/-r` later.")
         }
     }
 
