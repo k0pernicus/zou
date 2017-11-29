@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 pub mod logs;
 
 pub mod authorization;
-pub mod bench;
+// pub mod bench;
 pub mod cargo_helper;
 pub mod client;
 pub mod contentlength;
