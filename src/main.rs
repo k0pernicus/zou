@@ -24,35 +24,36 @@ fn main() {
     // Parse arguments
 
     let argparse = App::new("Zou")
-        .about("Zou, a simple and fast download accelerator, written in Rust.")
+        .about(
+            "Zou, a simple and fast download accelerator, written in Rust.",
+        )
         .version(crate_version!())
-        .arg(Arg::with_name("threads")
-                 .long("threads")
-                 .short("t")
-                 .takes_value(true)
-                 .help("Threads which can use to download"))
-        .arg(Arg::with_name("debug")
-                 .long("debug")
-                 .short("d")
-                 .help("Active the debug mode"))
-        .arg(Arg::with_name("force")
-                 .long("force")
-                 .help("Assume Yes to all queries and do not prompt"))
-        .arg(Arg::with_name("mirrors")
-                 .long("mirrors")
-                 .short("m")
-                 .multiple(true)
-                 .takes_value(true)
-                 .help("Download using a list of mirrors - the list of mirrors is used WITH the original URL"))
-        .arg(Arg::with_name("output")
+        .arg(
+            Arg::with_name("threads")
+                .long("threads")
+                .short("t")
+                .takes_value(true)
+                .help("Threads which can use to download"),
+        )
+        .arg(Arg::with_name("debug").long("debug").short("d").help(
+            "Active the debug mode",
+        ))
+        .arg(Arg::with_name("force").long("force").help(
+            "Assume Yes to all queries and do not prompt",
+        ))
+        .arg(
+            Arg::with_name("output")
                 .long("output")
                 .short("o")
                 .takes_value(true)
-                .help("Specify the local output"))
-        .arg(Arg::with_name("ssl_support")
+                .help("Specify the local output"),
+        )
+        .arg(
+            Arg::with_name("ssl_support")
                 .long("ssl_support")
                 .short("s")
-                .help("Switch to an SSL client"))
+                .help("Switch to an SSL client"),
+        )
         .arg(Arg::with_name("url")
             .index(1)
             //.multiple(true)

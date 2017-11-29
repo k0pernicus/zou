@@ -33,7 +33,7 @@ pub struct StringFileSize(String);
 impl fmt::Display for StringFileSize {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Get a reference to the content of the StringFileSize struct
-        let &StringFileSize(ref value) = self; 
+        let &StringFileSize(ref value) = self;
         write!(f, "{}", value)
     }
 }
@@ -41,18 +41,15 @@ impl fmt::Display for StringFileSize {
 impl From<u64> for StringFileSize {
     fn from(size: u64) -> Self {
         let (file_size, unit) = match size {
-        0...999 => (size as f64, FileSize::B),
-        1_000...999_999 => (size as f64 / FileSize::KB.value() as f64, FileSize::KB),
-        1_000_000...999_999_999 => (size as f64 / FileSize::MB.value() as f64, FileSize::MB),
-        1_000_000_000...999_999_999_999 => {
-            (size as f64 / FileSize::GB.value() as f64, FileSize::GB)
-        }
-        _ => (size as f64 / FileSize::TB.value() as f64, FileSize::TB),
-    };
+            0...999 => (size as f64, FileSize::B),
+            1_000...999_999 => (size as f64 / FileSize::KB.value() as f64, FileSize::KB),
+            1_000_000...999_999_999 => (size as f64 / FileSize::MB.value() as f64, FileSize::MB),
+            1_000_000_000...999_999_999_999 => {
+                (size as f64 / FileSize::GB.value() as f64, FileSize::GB)
+            }
+            _ => (size as f64 / FileSize::TB.value() as f64, FileSize::TB),
+        };
 
-        StringFileSize(
-            format!("{:.2} {}", file_size, unit)
-        )
+        StringFileSize(format!("{:.2} {}", file_size, unit))
     }
 }
-

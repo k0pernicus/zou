@@ -38,7 +38,8 @@ fn launch_bench<'a>(bench_client: &Client, url: URL<'a>) -> u32 {
 }
 
 /// Test each URL to download the required file
-/// This function returns a list of URLs, which is sorted by median measures (the first URL is the fastest server)
+/// This function returns a list of URLs, which is sorted by median measures
+/// (the first URL is the fastest server)
 pub fn bench_mirrors<'a>(
     mirrors: MirrorsList<'a>,
     filename: &str,

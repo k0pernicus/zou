@@ -82,7 +82,8 @@ fn get_header_from_index(
 
 
 /// Function to get from the server the content of a chunk.
-/// This function returns a Result type - Bytes if the content of the header is accessible, an Error type otherwise.
+/// This function returns a Result type - Bytes if the content of the header is accessible,
+/// an Error type otherwise.
 fn download_a_chunk(
     http_client: &Client,
     http_header: Headers,

@@ -24,12 +24,12 @@ impl Clone for OutputFileWriter {
 impl OutputFileWriter {
     pub fn write(&mut self, offset: u64, buf: &[u8]) {
         let mut out_file = self.file.lock().unwrap();
-        out_file
-            .seek(SeekFrom::Start(offset))
-            .expect("Error while seeking in file.");
-        out_file
-            .write_all(buf)
-            .expect("Error while writing to file.");
+        out_file.seek(SeekFrom::Start(offset)).expect(
+            "Error while seeking in file.",
+        );
+        out_file.write_all(buf).expect(
+            "Error while writing to file.",
+        );
     }
 
     pub fn get_chunk_writer(&mut self, offset: u64) -> OutputChunkWriter {

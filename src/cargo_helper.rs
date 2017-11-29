@@ -36,10 +36,18 @@ pub enum RemoteServerError {
 impl fmt::Display for RemoteServerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            RemoteServerError::TooMuchAttempting(ref attempts) => write!(f, "{} attempts failed", attempts),
-            RemoteServerError::UnknownAuthorizationType(ref unknown_type) => write!(f, "{} is not supporting by Zou.\
+            RemoteServerError::TooMuchAttempting(ref attempts) => {
+                write!(f, "{} attempts failed", attempts)
+            }
+            RemoteServerError::UnknownAuthorizationType(ref unknown_type) => {
+                write!(
+                    f,
+                    "{} is not supporting by Zou.\
                                                                                         You can create a new issue to report this problem \
-                                                                                        at https://github.com/k0pernicus/zou/issues/new", unknown_type) 
+                                                                                        at https://github.com/k0pernicus/zou/issues/new",
+                    unknown_type
+                )
+            } 
         }
     }
 }
@@ -48,7 +56,7 @@ impl error::Error for RemoteServerError {
     fn description(&self) -> &str {
         match *self {
             RemoteServerError::TooMuchAttempting(_) => "Many attempts failed",
-            RemoteServerError::UnknownAuthorizationType(_) => "Authorization type not supported"
+            RemoteServerError::UnknownAuthorizationType(_) => "Authorization type not supported",
         }
     }
 }
@@ -133,9 +141,7 @@ pub fn get_remote_server_informations<'a>(
     Ok(RemoteServerInformations {
         accept_partialcontent: true,
         auth_header: auth_header_factory,
-        file: RemoteFileInformations {
-            content_length: remote_content_length,
-        },    
+        file: RemoteFileInformations { content_length: remote_content_length },
         url: url,
     })
 }

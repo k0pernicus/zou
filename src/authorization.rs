@@ -60,10 +60,11 @@ pub struct AuthorizationHeaderFactory {
 }
 
 impl AuthorizationHeaderFactory {
-    pub fn new(authorization_type: AuthorizationType,
-               username: String,
-               password: Option<String>)
-               -> AuthorizationHeaderFactory {
+    pub fn new(
+        authorization_type: AuthorizationType,
+        username: String,
+        password: Option<String>,
+    ) -> AuthorizationHeaderFactory {
         AuthorizationHeaderFactory {
             authorization_type: authorization_type,
             username: username,
@@ -75,8 +76,10 @@ impl AuthorizationHeaderFactory {
         match self.authorization_type {
             AuthorizationType::Basic => Authorization(format!("Basic {}", self)),
             _ => {
-                epanic!(&format!("{} Authorization is not supported!",
-                                 self.authorization_type))
+                epanic!(&format!(
+                    "{} Authorization is not supported!",
+                    self.authorization_type
+                ))
             }
         }
     }
