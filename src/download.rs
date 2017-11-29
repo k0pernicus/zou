@@ -1,5 +1,7 @@
 use {Bytes, RangeBytes};
 use cargo_helper::RemoteServerInformations;
+use chan;
+use chan_signal::{self, Signal};
 use client::{Config, GetResponse};
 use hyper::client::Client;
 use hyper::error::Error;
@@ -87,6 +89,7 @@ fn download_a_chunk(
     url: &str,
     mpb: &mut ProgressBar<Pipe>,
     monothreading: bool,
+    _sdone: chan::Sender<()>,
 ) -> Result<Bytes, Error> {
 
     let mut body = http_client
@@ -130,8 +133,8 @@ fn download_a_chunk(
 /// * the number of chunks that contains the remote content,
 /// * the URL of the remote content server,
 /// * a custom authorization to access and download the remote content.
-pub fn download_chunks<'a>(
-    cargo_info: RemoteServerInformations<'a>,
+pub fn download_chunks(
+    cargo_info: RemoteServerInformations,
     mut out_file: OutputFileWriter,
     nb_chunks: u64,
     ssl_support: bool,
@@ -145,10 +148,13 @@ pub fn download_chunks<'a>(
     let mut mpb = MultiBar::new();
     mpb.println(&format!("Downloading {} chunk(s): ", nb_chunks));
 
+    let signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
+    let (sdone, rdone) = chan::sync(0);
+
     for chunk_index in 0..nb_chunks {
 
         let server_url = cargo_info.url.clone();
-        let url_clone = String::from(server_url);
+        let url_clone = server_url.clone();
         let (mut http_header, RangeBytes(chunk_offset, chunk_length)) =
             get_header_from_index(chunk_index, content_length, global_chunk_length).unwrap();
         let current_config = Config { enable_ssl: ssl_support };
@@ -157,6 +163,7 @@ pub fn download_chunks<'a>(
             http_header.set(auth_header_factory.build_header());
         }
         let monothreading = cargo_info.accept_partialcontent;
+        let sdone = sdone.clone();
 
         // Initialize the progress bar for that chunk
         initbar!(mp, mpb, chunk_length, chunk_index, server_url);
@@ -171,6 +178,7 @@ pub fn download_chunks<'a>(
             &url_clone,
             &mut mp,
             monothreading,
+            sdone,
         ) {
             Ok(bytes_written) => {
                 mp.finish();
@@ -191,7 +199,15 @@ pub fn download_chunks<'a>(
         }));
     }
 
-    mpb.listen();
+    thread::spawn(move || mpb.listen());
+
+    chan_select! {
+        signal.recv() -> signal => {        
+            info!("User stopped the download !");
+            return false
+        },
+        rdone.recv() => {}
+    }
 
     // Contain the result state for chunks
     let mut child_results: Vec<bool> = Vec::with_capacity(nb_chunks as usize);
