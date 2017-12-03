@@ -4,7 +4,7 @@ use hyper::error::Error;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::net::HttpsConnector;
-use hyper_openssl::OpensslClient;
+use hyper_native_tls::NativeTlsClient;
 
 /// Structure to store if SSL is required, and to
 /// implement a default HTTP/HTTPS client
@@ -30,7 +30,7 @@ trait SSLSupport {
 
 impl SSLSupport for Client {
     fn default_ssl() -> Client {
-        let ssl = OpensslClient::new().unwrap();
+        let ssl = NativeTlsClient::new().unwrap();
         let connector = HttpsConnector::new(ssl);
         Client::with_connector(connector)
     }

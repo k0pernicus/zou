@@ -3,7 +3,7 @@ extern crate ansi_term;
 extern crate chan;
 extern crate chan_signal;
 extern crate hyper;
-extern crate hyper_openssl;
+extern crate hyper_native_tls;
 extern crate pbr;
 extern crate rayon;
 
